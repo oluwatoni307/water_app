@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      initialRoute: '/log',
+      initialRoute: '/',
       routes: {
         '/': (context) => WaterTrackScreen(),
         '/splash': (context) => SplashScreen(),
