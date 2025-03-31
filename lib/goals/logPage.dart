@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:water/goals/widgets/metric_buttons.dart';
+import 'package:water/goals/widgets/userMetric.dart';
 import 'package:water/goals/widgets/numberpad.dart';
-import 'package:water/widgets/addButton.dart';
 import 'package:wave/wave.dart';
 import 'package:wave/config.dart';
 import 'package:water/logic.dart';
@@ -14,12 +13,14 @@ class Log extends StatefulWidget {
 
 class _LogState extends State<Log> {
   String inputAmount = "";
-  int selectedCategoryIndex = 0;
-  final Map<String, int> categories = {"Coke": 50, "fanta": 50};
+  int selectedCategoryIndex = -1;
+  // final Map<String, int> categories = {"Coke": 50, "fanta": 50};
 
-  void onCategorySelected(int index) {
+  void onCategorySelected(int index, int value) {
     setState(() {
       selectedCategoryIndex = index;
+
+      inputAmount = value.toString();
     });
   }
 
@@ -29,14 +30,14 @@ class _LogState extends State<Log> {
     });
   }
 
-  void saveGoal() {
+  void logData() {
     if (inputAmount.isNotEmpty) {
       final parsedAmount = int.tryParse(inputAmount);
       if (parsedAmount != null && parsedAmount > 0) {
         context.read<Data>().log(parsedAmount);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Goal saved successfully!'),
+              content: Text(' successfully logged '),
               backgroundColor: Colors.green),
         );
         Navigator.pushNamed(context, '/'); // Navigate to GoalPage
@@ -67,49 +68,58 @@ class _LogState extends State<Log> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue,
+      backgroundColor: Color(0xFFF4F8FB),
       body: Column(
         children: [
-          Stack(
-            children: [
-              _buildWaveBackground(),
-              Column(
-                children: [
-                  SizedBox(height: 100),
-                  Text(
-                    inputAmount.isEmpty ? "0" : inputAmount,
-                    style: TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+          SizedBox(
+            height: 30,
+          ),
+          _buildWaveBackground(),
+          Expanded(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                color: Color(0x8C2596FF),
+                child: Column(
+                  children: [
+                    Stack(
+                      children: [
+                        Column(
+                          children: [
+                            SizedBox(height: 20),
+                            Text(
+                              inputAmount.isEmpty ? "0" : inputAmount,
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "Unit: ml",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                            _buildCategoryButtons(),
+                            SizedBox(height: 20),
+                            SizedBox(height: 20),
+                            CustomNumberPad(
+                              onNumberTap: onNumberPressed,
+                              onDelete: onDeletePressed,
+                              finished: logData,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "Unit: ml",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  _buildCategoryButtons(),
-                  SizedBox(height: 20),
-                  AddButton(
-                    text: "Add",
-                    backgroundColor: Colors.white,
-                    textColor: Colors.blue,
-                    onPressed: () {},
-                  ),
-                  SizedBox(height: 20),
-                  CustomNumberPad(
-                    onNumberTap: onNumberPressed,
-                    onDelete: onDeletePressed,
-                    finished: () {},
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -118,38 +128,52 @@ class _LogState extends State<Log> {
 
   Widget _buildWaveBackground() {
     return SizedBox(
-      height: 250,
-      child: WaveWidget(
-        config: CustomConfig(
-          gradients: [
-            [Colors.blueAccent, Colors.blue],
-            [Colors.lightBlueAccent, Colors.blue],
-          ],
-          durations: [3500, 1940],
-          heightPercentages: [0.3, 0.5],
-          blur: MaskFilter.blur(BlurStyle.solid, 5),
+      height: 50,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: WaveWidget(
+          config: CustomConfig(
+            colors: [
+              Color(0x4D2596FF), // ~30% opacity for first wave
+              Color(0x4D2596FF), // ~30% opacity for second wave
+            ],
+            durations: [4000, 3200],
+            heightPercentages: [0.20, 0.25],
+          ),
+          waveAmplitude: 15,
+          size: Size(double.infinity, 130),
         ),
-        size: Size(double.infinity, double.infinity),
-        waveAmplitude: 0,
       ),
     );
   }
 
   Widget _buildCategoryButtons() {
+    final data =
+        context.read<Data>().user; // Add this line to access data provider
+    Map categories = data.metric;
     final categoryList = categories.keys.toList();
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(categories.length, (index) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: MetricButton(
-            label: categoryList[index],
-            isSelected: index == selectedCategoryIndex,
-            onTap: () => onCategorySelected(index),
-          ),
-        );
-      }),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: SizedBox(
+        height: categoryList.length > 0 ? 80 : 0,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: categories.length,
+          itemBuilder: (context, index) {
+            final categoryKey = categoryList[index];
+            final categoryValue = categories[categoryKey];
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: MetricButton(
+                label: categoryList[index],
+                isSelected: index == selectedCategoryIndex,
+                onTap: () => onCategorySelected(index, categoryValue!),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

@@ -140,7 +140,7 @@ class WaterTrackScreen extends StatelessWidget {
                                   backgroundColor: Colors.white,
                                 ),
                                 child: const Text(
-                                  "Add Your Goal",
+                                  "Log your water",
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: Colors.black,
