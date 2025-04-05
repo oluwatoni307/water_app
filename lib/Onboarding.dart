@@ -28,6 +28,12 @@ class _OnBoardingPageViewState extends State<OnBoardingPageView> {
       "buttonText": "Next"
     },
     {
+      "image": "images/gpt.png",
+      "title": "",
+      "description": "It is recommended to take a liter of water a day.",
+      "buttonText": "Next"
+    },
+    {
       "image": "images/3.png",
       "title": "Ready to Start?",
       "description": "Let's get you set up.",

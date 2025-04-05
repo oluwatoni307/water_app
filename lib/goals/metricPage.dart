@@ -35,16 +35,6 @@ class _MetricpageState extends State<Metricpage> {
 
   // Save selected metrics to Data provider
   void saveMetric() {
-    if (user_metric.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one metric'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     try {
       Map<String, int> metricMap = {};
       for (var metric in user_metric) {
@@ -53,12 +43,14 @@ class _MetricpageState extends State<Metricpage> {
 
       context.read<Data>().setMetrics(metricMap);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Metrics saved successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (user_metric.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Metrics saved successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
 
       Navigator.pushReplacementNamed(context, '/');
     } catch (e) {

@@ -32,7 +32,7 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            const SizedBox(height: 100),
+            const SizedBox(height: 70),
             // Main content section: image, title, description
             Column(
               children: [
@@ -41,35 +41,38 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
                   width: 300,
                   height: 300,
                 ),
-                Text(
-                  widget.title,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 30,
-                    color: Colors.black,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text(
+                    widget.title,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Colors.black,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: Text(
                     widget.description,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
-                      fontSize: 18,
+                      fontSize: 15,
                       color: Colors.grey[600],
                     ),
                   ),
                 ),
-                const SizedBox(height: 50),
+                const SizedBox(height: 20),
               ],
             ),
             // Dynamic Page Indicators
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                3, // Replace 3 with actual length of onboarding screens
+                4, // Replace 3 with actual length of onboarding screens
                 (index) => AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   margin: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -84,27 +87,30 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 70),
+            Spacer(),
             // Action Button
-            ElevatedButton(
-              onPressed: () {
-                print("Button pressed on page: ${widget.buttonText}");
-                // Correctly invoke the callback function.
-                widget.onButtonPressed();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5DCCFC),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 110, vertical: 25),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  print("Button pressed on page: ${widget.buttonText}");
+                  // Correctly invoke the callback function.
+                  widget.onButtonPressed();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5DCCFC),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 110, vertical: 25),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-              ),
-              child: Text(
-                widget.buttonText,
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  color: Colors.white,
+                child: Text(
+                  widget.buttonText,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

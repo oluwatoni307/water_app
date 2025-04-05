@@ -4,8 +4,10 @@ import 'package:water/logic.dart';
 import 'package:wave/wave.dart';
 import 'package:wave/config.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:liquid_progress_indicator_v2/liquid_progress_indicator.dart';
 
-const List<String> routes = ['/', '/profile', '/goals', '/'];
+const List<String> routes = ['/', '/profile', '/goals', '/settings'];
 
 class WaterTrackScreen extends StatelessWidget {
   const WaterTrackScreen({super.key});
@@ -28,9 +30,9 @@ class WaterTrackScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentRoute = ModalRoute.of(context)!.settings.name;
-    // Determine the current index based on the route
-    final currentIndex = routes.indexOf(currentRoute!);
+    final currentRoute = ModalRoute.of(context)?.settings.name ??
+        '/'; // Determine the current index based on the route
+    final currentIndex = routes.indexOf(currentRoute);
     return Consumer<Data>(
       builder: (context, data, child) {
         final userData = data.user; // Access UserData
@@ -52,17 +54,25 @@ class WaterTrackScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           greeting,
-                          style: TextStyle(fontSize: 22, color: Colors.grey),
+                          style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500),
                         ),
-                        Text(
-                          name,
-                          style: TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                          child: Text(
+                            name,
+                            style: GoogleFonts.inter(
+                                color: Colors.black,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ],
                     ),
@@ -78,10 +88,10 @@ class WaterTrackScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
                 Container(
                   width: MediaQuery.of(context).size.width,
-                  height: 180,
+                  height: 130,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     color: Colors.white,
@@ -111,7 +121,7 @@ class WaterTrackScreen extends StatelessWidget {
                               blur: MaskFilter.blur(BlurStyle.solid, 10),
                             ),
                             waveAmplitude: 10,
-                            size: Size(double.infinity, 130),
+                            size: Size(double.infinity, 80),
                           ),
                         ),
                         Padding(
@@ -121,15 +131,17 @@ class WaterTrackScreen extends StatelessWidget {
                             children: [
                               Text(
                                 _formatTime(nextReminderTime),
-                                style: TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.bold),
+                                style: GoogleFonts.poppins(
+                                    fontSize: 20, fontWeight: FontWeight.w600),
                               ),
                               Text(
                                 "$suggestedAmount ml water (${(suggestedAmount / 100).round()} Glass)",
-                                style:
-                                    TextStyle(fontSize: 16, color: Colors.grey),
+                                style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w500),
                               ),
-                              const SizedBox(height: 50),
+                              Spacer(),
                               ElevatedButton(
                                 onPressed: () {
                                   // TODO: Open goal-setting dialog
@@ -139,10 +151,10 @@ class WaterTrackScreen extends StatelessWidget {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
                                 ),
-                                child: const Text(
+                                child: Text(
                                   "Log your water",
-                                  style: TextStyle(
-                                    fontSize: 16,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
                                     color: Colors.black,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -155,14 +167,32 @@ class WaterTrackScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 15),
                 Row(
                   children: [
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 20.0),
-                        child: Container(
+                    SizedBox(
+                      width: 130,
+                      height: 130,
+                      child: LiquidCircularProgressIndicator(
+                        value: userData.goal > 0
+                            ? (userData.Day_Log.values
+                                    .fold(0, (sum, amount) => sum + amount) /
+                                userData.goal)
+                            : 0.0,
+                        valueColor:
+                            AlwaysStoppedAnimation(const Color(0xFF369FFF)),
+                        backgroundColor: Colors.white,
+                        // borderColor: const Color(0xFF369FFF),
+                        // borderWidth: 5.0,
+                        direction: Axis.vertical,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 20,
+                    ),
+                    Column(
+                      children: [
+                        Container(
                           width: 150,
                           padding: EdgeInsets.all(16.0),
                           decoration: BoxDecoration(
@@ -186,9 +216,9 @@ class WaterTrackScreen extends StatelessWidget {
                                         ? _formatTime(DateTime.now().subtract(
                                             userData.lastLog.keys.first))
                                         : 'N/A',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold),
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500),
                                   ),
                                   SizedBox(width: 7),
                                   Expanded(
@@ -214,8 +244,10 @@ class WaterTrackScreen extends StatelessWidget {
                                     userData.lastLog.isNotEmpty
                                         ? "${userData.lastLog.values.first}ml"
                                         : "0ml",
-                                    style: TextStyle(
-                                        fontSize: 14, color: Colors.red),
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.w600),
                                   ),
                                   Text(
                                     userData.goal > 0
@@ -230,66 +262,72 @@ class WaterTrackScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 13),
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 35, 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.5),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Text("Target:",
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.w500)),
+                              SizedBox(height: 5),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 5.0),
+                                child: Text(
+                                  "${userData.goal}ml",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 60),
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 35, 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.5),
-                            spreadRadius: 1,
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Text("Target:",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.grey)),
-                          SizedBox(height: 5),
-                          Text(
-                            "${userData.goal}ml",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text("Statistic",
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 15),
+                Text("Statistics",
+                    style: GoogleFonts.poppins(
+                        fontSize: 16, fontWeight: FontWeight.w600)),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: LineChartWidget(),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: WeeklyWaterTrackingChart(),
                   ),
                 ),
               ],
             ),
           ),
           bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
             currentIndex: currentIndex, // Highlight the current tab
             onTap: (index) {
-              // Navigate to the selected route, replacing the current one
-              Navigator.pushNamed(context, routes[index]);
+              final currentRoute = ModalRoute.of(context)?.settings.name ?? '/';
+              final newRoute = routes[index];
+
+              // Only navigate if the new route is different from the current one
+              if (currentRoute != newRoute) {
+                Navigator.pushNamed(context, newRoute);
+              }
             },
             items: const [
               BottomNavigationBarItem(
@@ -338,36 +376,157 @@ class WaterTrackScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 }
 
-class LineChartWidget extends StatelessWidget {
+class WeeklyWaterTrackingChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return LineChart(
-      LineChartData(
-        titlesData: FlTitlesData(
-          show: true,
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: [
-              FlSpot(0, 1),
-              FlSpot(1, 1.5),
-              FlSpot(2, 1),
-              FlSpot(3, 2),
-              FlSpot(4, 1.5),
-            ],
-            isCurved: true,
-            color: Colors.blue,
-            barWidth: 3,
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
+      ),
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(
+            show: true,
+            drawHorizontalLine: true,
+            horizontalInterval: 500,
+            getDrawingHorizontalLine: (value) {
+              return FlLine(
+                color: Colors.grey.withOpacity(0.2),
+                strokeWidth: 1,
+                dashArray: [5, 5],
+              );
+            },
+            drawVerticalLine: false,
+          ),
+          titlesData: FlTitlesData(
+            show: true,
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  String text = '';
+                  if (value == 0) {
+                    text = 'Mon';
+                  } else if (value == 1) {
+                    text = 'Tue';
+                  } else if (value == 2) {
+                    text = 'Wed';
+                  } else if (value == 3) {
+                    text = 'Thu';
+                  } else if (value == 4) {
+                    text = 'Fri';
+                  } else if (value == 5) {
+                    text = 'Sat';
+                  } else if (value == 6) {
+                    text = 'Sun';
+                  }
+                  return Text(
+                    text,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 10,
+                    ),
+                  );
+                },
+                reservedSize: 18,
+              ),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          minX: 0,
+          maxX: 6,
+          minY: 0,
+          maxY: 2500,
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              tooltipBgColor: Colors.black87,
+              tooltipRoundedRadius: 8,
+              getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                return touchedSpots.map((spot) {
+                  final day = spot.x == 0
+                      ? 'Mon'
+                      : spot.x == 1
+                          ? 'Tue'
+                          : spot.x == 2
+                              ? 'Wed'
+                              : spot.x == 3
+                                  ? 'Thu'
+                                  : spot.x == 4
+                                      ? 'Fri'
+                                      : spot.x == 5
+                                          ? 'Sat'
+                                          : 'Sun';
+                  return LineTooltipItem(
+                    '$day\n${spot.y.toInt()}ml',
+                    const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                }).toList();
+              },
+            ),
+            touchCallback:
+                (FlTouchEvent event, LineTouchResponse? touchResponse) {},
+            handleBuiltInTouches: true,
+          ),
+          lineBarsData: [
+            LineChartBarData(
+              spots: [
+                FlSpot(0, 1500), // Monday
+                FlSpot(1, 1300), // Tuesday
+                FlSpot(2, 2000), // Wednesday (highlighted in design)
+                FlSpot(3, 1800), // Thursday
+                FlSpot(4, 1600), // Friday
+                FlSpot(5, 1100), // Saturday
+                FlSpot(6, 2200), // Sunday
+              ],
+              isCurved: true,
+              color: Colors.blue.shade400,
+              barWidth: 3,
+              isStrokeCapRound: true,
+              dotData: FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, barData, index) {
+                    // Make Wednesday (day 2) highlighted with a larger dot
+
+                    return FlDotCirclePainter(
+                      radius: 0, // Hide all other dots
+                      color: Colors.transparent,
+                      strokeWidth: 0,
+                      strokeColor: Colors.transparent,
+                    );
+                  }),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.blue.withOpacity(0.2),
+                    Colors.blue.withOpacity(0.02),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
