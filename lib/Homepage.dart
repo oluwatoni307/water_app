@@ -50,7 +50,7 @@ class WaterTrackScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
+                const SizedBox(height: 30),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -60,7 +60,7 @@ class WaterTrackScreen extends StatelessWidget {
                         Text(
                           greeting,
                           style: GoogleFonts.poppins(
-                              fontSize: 14,
+                              fontSize: 18,
                               color: Colors.grey,
                               fontWeight: FontWeight.w500),
                         ),
@@ -70,7 +70,7 @@ class WaterTrackScreen extends StatelessWidget {
                             name,
                             style: GoogleFonts.inter(
                                 color: Colors.black,
-                                fontSize: 20,
+                                fontSize: 22,
                                 fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -88,7 +88,7 @@ class WaterTrackScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 15),
                 Container(
                   width: MediaQuery.of(context).size.width,
                   height: 130,
