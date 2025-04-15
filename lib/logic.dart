@@ -1,169 +1,199 @@
-// data.dart
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:water/model/userData.dart';
-import 'dart:convert';
 
-class Data extends ChangeNotifier {
-  UserData _user = UserData('', 0, {}, {}, {}, {}, ''); // Initial empty state
-  static const String _key = 'userData'; // Key for SharedPreferences
+/// Service to handle Firebase Authentication
+class AuthService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Data() {
-    _loadFromPrefs(); // Load data on initialization
+  /// Returns the UID of the current user, or throws if not signed in.
+  Future<String> getCurrentUID() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'NO_CURRENT_USER',
+        message: 'No user is currently signed in.',
+      );
+    }
+    return user.uid;
   }
 
+  /// Signs in with email and password.
+  Future<UserCredential> signIn(String email, String password) =>
+      _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+  /// Registers a new user with email and password.
+  Future<UserCredential> signUp(String email, String password) =>
+      _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+  /// Signs out the current user.
+  Future<void> signOut() => _auth.signOut();
+}
+
+/// Data provider syncing UserData with Firestore in real time.
+class Data extends ChangeNotifier {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AuthService _authService = AuthService();
+
+  late final DocumentReference<Map<String, dynamic>> _docRef;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _subscription;
+
+  UserData _user = UserData('', 0, {}, {}, {}, {}, '');
   UserData get user => _user;
 
-  // Load data from SharedPreferences
-  Future<void> _loadFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_key);
-    if (jsonString != null) {
-      _user = UserData.fromJson(jsonDecode(jsonString));
-      notifyListeners();
+  Data() {
+    _initialize();
+  }
+
+  /// Initializes Firestore reference and listeners.
+  Future<void> _initialize() async {
+    try {
+      final uid = await _authService.getCurrentUID();
+      _docRef = _firestore.collection('users').doc(uid);
+
+      // Load existing data
+      final snapshot = await _docRef.get();
+      if (snapshot.exists && snapshot.data() != null) {
+        _user = UserData.fromJson(snapshot.data()!);
+        notifyListeners();
+      }
+    } catch (e) {
+      if (kDebugMode) print('Initialization error: $e');
     }
   }
 
-  // Save data to SharedPreferences
-  Future<void> _saveToPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(_user.toJson()));
+  /// Persists the current user data to Firestore.
+  Future<void> _save() async {
+    try {
+      await _docRef.set(_user.toJson());
+    } catch (e) {
+      if (kDebugMode) print('Firestore save error: $e');
+    }
   }
 
-  // Initialize or update from external source
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  /// Overwrites data locally and remotely.
   void updateFromDB(UserData userData) {
     _user = userData;
-    _saveToPrefs();
+    _save();
     notifyListeners();
   }
 
-  // Set goals
+  /// Updates the user's goal.
   void setGoals(String goal) {
     _user.goal = int.tryParse(goal) ?? 0;
-    _saveToPrefs();
+    _save();
     notifyListeners();
   }
 
-  // Set metrics
-  void setMetrics(Map<String, int> metric) {
-    _user.metric = Map.from(metric);
-    _saveToPrefs();
+  /// Updates the user's metrics map.
+  void setMetrics(Map<String, int> metrics) {
+    _user.metric = Map.from(metrics);
+    _save();
     notifyListeners();
   }
 
-  // Log an amount at current time (Duration since midnight)
+  /// Logs a water intake at the current timestamp.
   void log(int amount) {
     final now = DateTime.now();
-    final durationSinceMidnight = Duration(
+    final timestamp = Duration(
       hours: now.hour,
       minutes: now.minute,
       seconds: now.second,
       milliseconds: now.millisecond,
     );
-    _user.Day_Log[durationSinceMidnight] = amount;
-    _user.lastLog = {durationSinceMidnight: amount};
-    _saveToPrefs();
+    _user.Day_Log[timestamp] = amount;
+    _user.lastLog = {timestamp: amount};
+    _save();
     notifyListeners();
   }
 
-  // Calculate next reminder time and suggested amount
+  /// Calculates the next reminder time and suggested amount.
   (DateTime, int) calculateNextReminder() {
-    const defaultIntervalHours = 1.0;
-    const defaultAmount = 250;
-    const minIntervalHours = 0.5;
-    const maxIntervalHours = 3.0;
-    const startHour = 7;
-    const endHour = 23;
+    const double defaultInterval = 1.0;
+    const int defaultAmount = 250;
+    const double minInterval = 0.5;
+    const double maxInterval = 3.0;
+    const int startHour = 7;
+    const int endHour = 23;
 
     final now = DateTime.now();
-    final startTime = DateTime(now.year, now.month, now.day, startHour, 0);
-    final endTime = DateTime(now.year, now.month, now.day, endHour, 0);
-    final timeElapsed =
-        now.isAfter(startTime) ? now.difference(startTime) : Duration.zero;
-    final totalActiveTime = endTime.difference(startTime);
+    final start = DateTime(now.year, now.month, now.day, startHour);
+    final end = DateTime(now.year, now.month, now.day, endHour);
 
     if (_user.Day_Log.isEmpty) {
-      var nextTime = now.add(Duration(hours: defaultIntervalHours.toInt()));
-      if (nextTime.isAfter(endTime)) nextTime = endTime;
+      final next = now.add(Duration(hours: defaultInterval.toInt()));
+      final reminder = next.isAfter(end) ? end : next;
       _user.nextLog = {
-        nextTime.difference(DateTime(now.year, now.month, now.day)):
+        reminder.difference(DateTime(now.year, now.month, now.day)):
             defaultAmount
       };
-      _saveToPrefs();
-      return (nextTime, defaultAmount);
+      _save();
+      return (reminder, defaultAmount);
     }
 
-    final expectedDrinked = totalActiveTime.inMinutes > 0
-        ? _user.goal * (timeElapsed.inMinutes / totalActiveTime.inMinutes)
-        : 0.0;
-    final currentDrinked =
-        _user.Day_Log.values.fold(0, (sum, amount) => sum + amount);
-    final ratio = expectedDrinked > 0 ? currentDrinked / expectedDrinked : 1.0;
-    final k = ratio.clamp(0.5, 2.0);
+    // Compute elapsed and expected intake
+    final elapsed = now.isAfter(start) ? now.difference(start) : Duration.zero;
+    final totalTime = end.difference(start).inMinutes;
+    final expected =
+        totalTime > 0 ? _user.goal * (elapsed.inMinutes / totalTime) : 0.0;
+    final consumed = _user.Day_Log.values.fold(0, (sum, a) => sum + a);
+    final ratio = expected > 0 ? consumed / expected : 1.0;
+    final factor = ratio.clamp(0.5, 2.0);
 
-    final drinkTimes = _user.Day_Log.keys.toList()..sort();
-    double avgIntervalHours = 0.0;
-    if (drinkTimes.length >= 2) {
-      final intervals = <double>[];
-      for (int i = 1; i < drinkTimes.length; i++) {
-        final diff = (drinkTimes[i] - drinkTimes[i - 1]).inMinutes / 60.0;
-        intervals.add(diff);
-      }
-      avgIntervalHours = intervals.reduce((a, b) => a + b) / intervals.length;
-    } else {
-      avgIntervalHours = defaultIntervalHours;
-    }
+    // Average interval
+    final times = _user.Day_Log.keys.toList()..sort();
+    final avgInterval = times.length >= 2
+        ? times
+                .skip(1)
+                .map((t) => (t - times[times.indexOf(t) - 1]).inMinutes / 60)
+                .reduce((a, b) => a + b) /
+            (times.length - 1)
+        : defaultInterval;
 
-    final proposedIntervalHours = k * avgIntervalHours;
-    final adjustedIntervalHours =
-        proposedIntervalHours.clamp(minIntervalHours, maxIntervalHours);
-    final adjustedInterval =
-        Duration(minutes: (adjustedIntervalHours * 60).round());
+    final intervalHours =
+        (factor * avgInterval).clamp(minInterval, maxInterval);
+    final lastTime = DateTime(now.year, now.month, now.day).add(times.last);
+    var nextReminder =
+        lastTime.add(Duration(minutes: (intervalHours * 60).round()));
+    if (nextReminder.isBefore(now))
+      nextReminder = now.add(Duration(minutes: 5));
+    if (nextReminder.isAfter(end)) nextReminder = end;
 
-    final lastDrinkTime = drinkTimes.last;
-    final lastDrinkDateTime =
-        DateTime(now.year, now.month, now.day).add(lastDrinkTime);
-    var nextReminderTime = lastDrinkDateTime.add(adjustedInterval);
-    if (nextReminderTime.isBefore(now)) {
-      nextReminderTime = now.add(Duration(minutes: 5));
-    }
-    if (nextReminderTime.isAfter(endTime)) {
-      nextReminderTime = endTime;
-    }
-
-    final remainingWater = _user.goal - currentDrinked;
-    final remainingTime = endTime.difference(nextReminderTime);
-    final remainingDrinks = remainingTime.inMinutes > 0
-        ? (remainingTime.inMinutes / adjustedInterval.inMinutes).ceil()
-        : 1;
-    int suggestedAmount;
-    if (remainingWater > 0) {
-      final baseAmount = remainingDrinks > 0
-          ? (remainingWater / remainingDrinks).round()
-          : remainingWater;
-      suggestedAmount = baseAmount;
-      if (ratio < 1) {
-        suggestedAmount = (suggestedAmount * 1.15).round();
-      }
-    } else {
-      suggestedAmount = 200;
-    }
+    final remaining = _user.goal - consumed;
+    final remainingTime = end.difference(nextReminder).inMinutes;
+    final slots =
+        remainingTime > 0 ? (remainingTime / (intervalHours * 60)).ceil() : 1;
+    int suggestion = slots > 0 ? (remaining / slots).round() : remaining;
+    if (ratio < 1) suggestion = (suggestion * 1.15).round();
 
     _user.nextLog = {
-      nextReminderTime.difference(DateTime(now.year, now.month, now.day)):
-          suggestedAmount
+      nextReminder.difference(DateTime(now.year, now.month, now.day)):
+          suggestion
     };
-    _saveToPrefs();
-
-    return (nextReminderTime, suggestedAmount);
+    _save();
+    return (nextReminder, suggestion);
   }
 
-  // Reset daily data
+  /// Clears daily logs.
   void resetDaily() {
     _user.Day_Log.clear();
     _user.lastLog.clear();
     _user.nextLog.clear();
-    _saveToPrefs();
+    _save();
     notifyListeners();
   }
 }

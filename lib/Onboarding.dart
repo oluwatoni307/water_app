@@ -60,7 +60,7 @@ class _OnBoardingPageViewState extends State<OnBoardingPageView> {
       // Final action: Navigate to the main app screen or complete onboarding
       // For example:
 
-      Navigator.pushNamed(context, '/'); // Navigate to GoalPage
+      Navigator.pushNamed(context, '/login'); // Navigate to login
     }
   }
 

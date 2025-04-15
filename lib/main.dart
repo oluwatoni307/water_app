@@ -1,15 +1,18 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:water/Homepage.dart';
 import 'package:water/goals/logPage.dart';
 import 'login.dart';
-import 'sign_up.dart';
+// import 'sign_up.dart';
 import 'splash_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:water/logic.dart';
 import 'goals/goalPage.dart';
 import 'goals/metricPage.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(ChangeNotifierProvider(
     create: (context) => Data(),
     child: MyApp(),
@@ -31,7 +34,7 @@ class MyApp extends StatelessWidget {
         '/goals': (context) => GoalPage(),
         '/metric': (context) => Metricpage(),
         '/login': (context) => LoginScreen(),
-        '/signup': (context) => CreateAccountScreen(),
+        // '/signup': (context) => CreateAccountScreen(),
         // Add more routes as needed
       },
       debugShowCheckedModeBanner: false,

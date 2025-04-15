@@ -39,6 +39,20 @@ android {
     }
 }
 
+// 👇 Add this dependencies block if you don’t already have one
+dependencies {
+    // Import the Firebase BoM
+    implementation platform('com.google.firebase:firebase-bom:32.8.0')
+
+    // (Optional) If you want to add native Analytics, Auth, Firestore, etc.
+//    implementation 'com.google.firebase:firebase-analytics'
+   implementation 'com.google.firebase:firebase-auth'
+   implementation 'com.google.firebase:firebase-firestore'
+}
+
+// 👇 APPLY the Google Services plugin **at the very bottom** of this file
+apply plugin: 'com.google.gms.google-services'
+
 flutter {
     source = "../.."
 }
