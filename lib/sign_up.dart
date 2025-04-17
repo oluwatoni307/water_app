@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:water/Homepage.dart';
+import 'package:provider/provider.dart';
 import 'package:water/model/userData.dart';
 import 'logic.dart'; // contains AuthService & Data
 
@@ -19,50 +19,133 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _loading = false;
   String? _error;
 
+  // Validate email format with regex
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return emailRegex.hasMatch(email);
+  }
+
+  // Validate all form inputs
+  bool _validateInputs() {
+    if (_nameCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'Please enter your name');
+      return false;
+    }
+
+    if (_emailCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'Please enter your email');
+      return false;
+    }
+
+    if (!_isValidEmail(_emailCtrl.text.trim())) {
+      setState(() => _error = 'Please enter a valid email address');
+      return false;
+    }
+
+    if (_pwCtrl.text.isEmpty) {
+      setState(() => _error = 'Please enter a password');
+      return false;
+    }
+
+    if (_pwCtrl.text.length < 6) {
+      setState(() => _error = 'Password must be at least 6 characters');
+      return false;
+    }
+
+    return true;
+  }
+
   Future<void> _signUp() async {
+    // Reset error state and validate inputs first
     setState(() {
-      _loading = true;
       _error = null;
     });
+
+    if (!_validateInputs()) {
+      return; // Validation failed
+    }
+
+    setState(() {
+      _loading = true;
+    });
+
     try {
+      print("1. Starting sign-up with email: ${_emailCtrl.text.trim()}");
+
       // 1) Create auth user
       final cred = await AuthService().signUp(
         _emailCtrl.text.trim(),
         _pwCtrl.text.trim(),
       );
+
       final uid = cred.user!.uid;
+      print("2. Auth user created with UID: $uid");
 
       // 2) Create initial user document in Firestore
       final initial = UserData(
-        uid,
-        0, // default goal
-        {}, // empty metrics
-        {}, // empty Day_Log
-        {}, // empty lastLog
-        {}, // empty nextLog
-        _nameCtrl.text.trim(),
-      );
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .set(initial.toJson());
+          _nameCtrl.text.trim(),
+          0, // default goal
+          {}, // empty metrics
+          {}, // empty Day_Log
+          {}, // empty lastLog
+          {}, // empty nextLog
+          uid,
+          {});
 
-      // 3) Optionally prime your Data provider:
-      //    context.read<Data>().updateFromDB(initial);
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .set(initial.toJson());
+        print("3. Firestore document created");
+      } on FirebaseException catch (e) {
+        // Handle Firestore errors specifically
+        _error = 'Database error: ${e.message}';
+        // Clean up auth user if database setup fails
+        await cred.user?.delete();
+        throw e;
+      }
+
+      // 3) Initialize the Data provider with user data
+      try {
+        Provider.of<Data>(context, listen: false).updateFromDB(initial);
+        print("4. Provider initialized with user data");
+      } catch (e) {
+        print("Provider update error: $e");
+        _error = "Failed to initialize user data";
+        // Consider how to recover from this error
+      }
 
       // 4) Navigate to home
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const WaterTrackScreen()),
-      );
+      print("5. Ready to navigate to home screen");
+
+      Navigator.pushReplacementNamed(context, '/');
     } on FirebaseAuthException catch (e) {
-      _error = e.message;
+      print("Auth error: ${e.code} - ${e.message}");
+
+      // Provide user-friendly error messages based on Firebase error codes
+      switch (e.code) {
+        case 'email-already-in-use':
+          _error = 'This email is already registered. Please log in instead.';
+          break;
+        case 'weak-password':
+          _error = 'Please use a stronger password.';
+          break;
+        case 'invalid-email':
+          _error = 'Please enter a valid email address.';
+          break;
+        default:
+          _error = e.message ?? 'Sign up failed. Please try again.';
+      }
     } catch (e) {
-      _error = 'Unexpected error: $e';
+      print("Unexpected error: $e");
+      _error = 'An unexpected error occurred. Please try again.';
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -81,12 +164,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
               controller: _nameCtrl,
               decoration: const InputDecoration(
                   labelText: 'Full Name', border: OutlineInputBorder()),
+              textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 20),
             TextField(
               controller: _emailCtrl,
               decoration: const InputDecoration(
                   labelText: 'Email', border: OutlineInputBorder()),
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 20),
             TextField(
@@ -94,6 +180,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               obscureText: true,
               decoration: const InputDecoration(
                   labelText: 'Password', border: OutlineInputBorder()),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _signUp(),
             ),
             if (_error != null) ...[
               const SizedBox(height: 10),
@@ -102,11 +190,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
             const SizedBox(height: 30),
             ElevatedButton(
               onPressed: _loading ? null : _signUp,
+              style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50)),
               child: _loading
                   ? const CircularProgressIndicator(color: Colors.white)
                   : const Text('Sign Up', style: TextStyle(fontSize: 18)),
-              style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50)),
             ),
             const SizedBox(height: 20),
             TextButton(
@@ -117,5 +205,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _pwCtrl.dispose();
+    super.dispose();
   }
 }

@@ -1,9 +1,12 @@
-// userData.dart
 class UserData {
   final String id;
   final String userName;
   int goal;
   Map<String, int> metric;
+
+  /// Log of daily water intakes keyed by `DateTime` (date-only)
+  Map<DateTime, int> Log;
+
   Map<Duration, int> Day_Log;
   Map<Duration, int> lastLog;
   Map<Duration, int> nextLog;
@@ -16,6 +19,7 @@ class UserData {
     this.lastLog,
     this.nextLog,
     this.id,
+    this.Log,
   );
 
   // Convert UserData to JSON for storage
@@ -30,6 +34,7 @@ class UserData {
             (key, value) => MapEntry(key.inMilliseconds.toString(), value)),
         'nextLog': nextLog.map(
             (key, value) => MapEntry(key.inMilliseconds.toString(), value)),
+        'Log': Log.map((key, value) => MapEntry(key.toIso8601String(), value)),
       };
 
   // Create UserData from JSON
@@ -57,6 +62,10 @@ class UserData {
           ) ??
           {},
       json['id'] ?? '',
+      (json['Log'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(DateTime.parse(key), value as int),
+          ) ??
+          {},
     );
   }
 }
