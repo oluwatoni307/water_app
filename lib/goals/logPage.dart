@@ -4,7 +4,7 @@ import 'package:water/goals/widgets/numberpad.dart';
 import 'package:wave/wave.dart';
 import 'package:wave/config.dart';
 import 'package:water/logic.dart';
-import 'package:provider/provider.dart'; // Add this import for context.read
+import 'package:provider/provider.dart';
 
 class Log extends StatefulWidget {
   @override
@@ -14,12 +14,10 @@ class Log extends StatefulWidget {
 class _LogState extends State<Log> {
   String inputAmount = "";
   int selectedCategoryIndex = -1;
-  // final Map<String, int> categories = {"Coke": 50, "fanta": 50};
 
   void onCategorySelected(int index, int value) {
     setState(() {
       selectedCategoryIndex = index;
-
       inputAmount = value.toString();
     });
   }
@@ -67,57 +65,70 @@ class _LogState extends State<Log> {
 
   @override
   Widget build(BuildContext context) {
+    final data = context.read<Data>().user;
+
     return Scaffold(
       backgroundColor: Color(0xFFF4F8FB),
       body: Column(
         children: [
-          SizedBox(
-            height: 30,
-          ),
+          // Top spacing
+          SizedBox(height: 30),
+
+          // Wave background at the top
           _buildWaveBackground(),
+
+          // Main content area
           Expanded(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                color: Color(0x8C2596FF),
-                child: Column(
-                  children: [
-                    Stack(
-                      children: [
-                        Column(
-                          children: [
-                            SizedBox(height: 20),
-                            Text(
-                              inputAmount.isEmpty ? "0" : inputAmount,
-                              style: TextStyle(
-                                fontSize: 48,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+            child: Container(
+              color: Color(0x8C2596FF),
+              child: Column(
+                children: [
+                  // Input display area
+                  Flexible(
+                    flex: 2,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Display the input amount
+                          Text(
+                            inputAmount.isEmpty ? "0" : inputAmount,
+                            style: TextStyle(
+                              fontSize: 48,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
-                            SizedBox(height: 8),
-                            Text(
-                              "Unit: ml",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white70,
-                              ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Unit: ml",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white70,
                             ),
-                            SizedBox(height: 20),
-                            _buildCategoryButtons(),
-                            SizedBox(height: 20),
-                            SizedBox(height: 20),
-                            CustomNumberPad(
-                              onNumberTap: onNumberPressed,
-                              onDelete: onDeletePressed,
-                              finished: logData,
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  // Categories strip
+                  if (data.metric.isNotEmpty)
+                    Flexible(
+                      flex: 1,
+                      child: _buildCategoryButtons(),
+                    ),
+
+                  // Number pad
+                  Flexible(
+                    flex: 3,
+                    child: CustomNumberPad(
+                      onNumberTap: onNumberPressed,
+                      onDelete: onDeletePressed,
+                      finished: logData,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -148,15 +159,14 @@ class _LogState extends State<Log> {
   }
 
   Widget _buildCategoryButtons() {
-    final data =
-        context.read<Data>().user; // Add this line to access data provider
+    final data = context.read<Data>().user;
     Map categories = data.metric;
     final categoryList = categories.keys.toList();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 10.0),
       child: SizedBox(
-        height: categoryList.length > 0 ? 80 : 0,
+        height: categoryList.isNotEmpty ? 80 : 0,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: categories.length,

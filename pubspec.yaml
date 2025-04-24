@@ -46,6 +46,8 @@ dependencies:
   firebase_auth: ^4.17.6
   cloud_firestore: ^4.15.4
   google_sign_in: ^6.2.1 # For Google auth
+  lottie: ^2.6.0
+
 
 dev_dependencies:
   flutter_test:

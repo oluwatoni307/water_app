@@ -4,6 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:water/model/userData.dart';
 
+// Boolean to track sign-up (true) or sign-in (false)
+bool _isSignUp = false;
+
 /// Service to handle Firebase Authentication
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -28,11 +31,14 @@ class AuthService {
       );
 
   /// Registers a new user with email and password.
-  Future<UserCredential> signUp(String email, String password) =>
-      _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+  Future<UserCredential> signUp(String email, String password) async {
+    final userCredential = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    _isSignUp = true;
+    return userCredential;
+  }
 
   /// Signs out the current user.
   Future<void> signOut() => _auth.signOut();
@@ -51,12 +57,12 @@ class Data extends ChangeNotifier {
   UserData _user = UserData('', 0, {}, {}, {}, {}, '', {});
   UserData get user => _user;
 
-  Data() {
-    _initialize();
-  }
+  Data();
+// Boolean to track sign-up (true) or sign-in (false)
+  bool get isSignUp => _isSignUp;
 
   /// Initializes Firestore reference, loads data, and schedules daily save.
-  Future<void> _initialize() async {
+  Future<void> initialize() async {
     try {
       final uid = await _authService.getCurrentUID();
       _docRef = _firestore.collection('users').doc(uid);

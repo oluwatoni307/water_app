@@ -8,14 +8,16 @@ class navBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final int safeIndex =
+        (currentIndex >= 0 && currentIndex < routes.length) ? currentIndex : 0;
+
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
-      currentIndex: currentIndex, // Highlight the current tab
+      currentIndex: safeIndex, // Use the safe index
       onTap: (index) {
         final currentRoute = ModalRoute.of(context)?.settings.name ?? '/';
         final newRoute = routes[index];
 
-        // Only navigate if the new route is different from the current one
         if (currentRoute != newRoute) {
           Navigator.pushNamed(context, newRoute);
         }
@@ -26,13 +28,17 @@ class navBar extends StatelessWidget {
           label: "Home",
         ),
         BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart, color: Colors.blueGrey),
-            label: "Analysis"),
+          icon: Icon(Icons.bar_chart, color: Colors.blueGrey),
+          label: "Analysis",
+        ),
         BottomNavigationBarItem(
-            icon: Icon(Icons.settings, color: Colors.blueGrey),
-            label: "Setting"),
+          icon: Icon(Icons.settings, color: Colors.blueGrey),
+          label: "Goal",
+        ),
         BottomNavigationBarItem(
-            icon: Icon(Icons.person, color: Colors.blueGrey), label: "Profile"),
+          icon: Icon(Icons.person, color: Colors.blueGrey),
+          label: "Profile",
+        ),
       ],
     );
   }

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:water/logic.dart';
-import 'package:water/model/navBar.dart';
+import 'package:water/widgets/navBar.dart';
 
 const List<String> routes = ['/', '/analysis', '/goals', '/settings'];
 

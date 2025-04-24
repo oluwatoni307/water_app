@@ -18,11 +18,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // Add a delay before navigating to the next screen
     Future.delayed(const Duration(seconds: 5), () {
-      // Replace with your actual route
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const OnBoardingPageView()),
-      );
+      if (mounted) {
+        // Check if widget is still mounted
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const OnBoardingPageView()),
+        );
+      }
     });
   }
 

@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:water/logic.dart';
-import 'package:water/model/navBar.dart';
+import 'package:water/widgets/navBar.dart';
+import 'package:water/widgets/inforwidget.dart';
+import 'package:water/widgets/lotprogress.dart';
 import 'package:wave/wave.dart';
 import 'package:wave/config.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:liquid_progress_indicator_v2/liquid_progress_indicator.dart';
 
 const List<String> routes = ['/', '/analysis', '/goals', '/settings'];
 
-class WaterTrackScreen extends StatelessWidget {
+class WaterTrackScreen extends StatefulWidget {
   const WaterTrackScreen({super.key});
+  static bool _hasShownDialog = false; // Track if dialog has been shown
 
+  @override
+  _WaterTrackScreenState createState() => _WaterTrackScreenState();
+}
+
+class _WaterTrackScreenState extends State<WaterTrackScreen> {
   // Helper to format DateTime to "HH:MM AM/PM"
   String _formatTime(DateTime time) {
     final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
@@ -29,356 +36,357 @@ class WaterTrackScreen extends StatelessWidget {
     return 'Good Evening,';
   }
 
+  // Show onboarding dialog for new users
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final data = Provider.of<Data>(context, listen: false);
+      if (!WaterTrackScreen._hasShownDialog && data.isSignUp) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => InfoDialog(
+            onFinish: () {
+              setState(() {
+                WaterTrackScreen._hasShownDialog = true;
+              });
+            },
+          ),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentRoute = ModalRoute.of(context)?.settings.name ??
-        '/'; // Determine the current index based on the route
+    final currentRoute = ModalRoute.of(context)?.settings.name ?? '/';
     final currentIndex = routes.indexOf(currentRoute);
+
     return Consumer<Data>(
       builder: (context, data, child) {
-        final userData = data.user; // Access UserData
-        final (nextReminderTime, suggestedAmount) =
-            data.calculateNextReminder();
+        // Show dialog for new users
+
+        final userData = data.user;
         final greeting = _getGreeting();
-        final name = userData.userName.isNotEmpty
-            ? userData.userName
-            : 'User'; // Fallback if empty
+        final name = userData.userName.isNotEmpty ? userData.userName : 'User';
         final amountDrank =
             userData.Day_Log.values.fold(0, (sum, amount) => sum + amount);
-        final percentage =
+        final num percentage =
             userData.goal > 0 ? (amountDrank / userData.goal) * 100 : 0;
 
         return Scaffold(
-            backgroundColor: Color(0xFFF4F8FB),
-            body: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 30),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            greeting,
-                            style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w500),
-                          ),
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 5.0),
-                            child: Text(
-                              name,
-                              style: GoogleFonts.inter(
-                                  color: Colors.black,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.notifications_none,
-                          color: Colors.blue,
-                          size: 40,
+          backgroundColor: Color(0xFFF4F8FB),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          greeting,
+                          style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500),
                         ),
-                        onPressed: () {
-                          // TODO: Implement notification action
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  Container(
-                    width: MediaQuery.of(context).size.width,
-                    height: 140,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.5),
-                          spreadRadius: 2,
-                          blurRadius: 5,
-                          offset: const Offset(0, 3),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                          child: Text(
+                            name,
+                            style: GoogleFonts.inter(
+                                color: Colors.black,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Stack(
-                        children: [
-                          Align(
-                            alignment: Alignment.bottomCenter,
-                            child: WaveWidget(
-                              config: CustomConfig(
-                                colors: [
-                                  Color(0x695DCCFC),
-                                  Color(0x695DCCFC),
-                                ],
-                                durations: [4000, 3200],
-                                heightPercentages: [0.20, 0.25],
-                                blur: MaskFilter.blur(BlurStyle.solid, 10),
-                              ),
-                              waveAmplitude: 10,
-                              size: Size(double.infinity, 80),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    Icon(Icons.water_drop,
-                                        color: Colors.blue, size: 27),
-                                    Text(
-                                      "Today's Progress ",
-                                      style: GoogleFonts.poppins(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w600),
-                                    ),
-                                  ],
-                                ),
-                                Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        8.0, 3.0, 0.0, 3.0),
-                                    child: Row(
-                                      children: [
-                                        RichText(
-                                          text: TextSpan(
-                                            children: [
-                                              TextSpan(
-                                                text: "${amountDrank}ml",
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 16,
-                                                  color: Colors
-                                                      .black, // Change color for amountDrank
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                              TextSpan(
-                                                text: "/ ${userData.goal}ml",
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 16,
-                                                  color: Colors
-                                                      .grey, // Keep original color for the rest
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 80,
-                                        ),
-                                        Text(
-                                          "${percentage}% complete",
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 16,
-                                            color: Colors
-                                                .grey, // Keep original color for the rest
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        )
-                                      ],
-                                    )),
-                                // Text(
-                                //   "$suggestedAmount ml water (${(suggestedAmount / 100).round()} Glass)",
-                                //   style: GoogleFonts.poppins(
-                                //       fontSize: 14,
-                                //       color: Colors.grey,
-                                //       fontWeight: FontWeight.w500),
-                                // ),
-                                Spacer(),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    // TODO: Open goal-setting dialog
-                                    Navigator.pushNamed(context,
-                                        '/log'); // Navigate to GoalPage
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                  ),
-                                  child: Text(
-                                    "Log your water",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                    IconButton(
+                      icon: const Icon(
+                        Icons.notifications_none,
+                        color: Colors.blue,
+                        size: 40,
                       ),
+                      onPressed: () {
+                        // TODO: Implement notification action
+                      },
                     ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                Container(
+                  width: MediaQuery.of(context).size.width,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 130,
-                        height: 130,
-                        child: LiquidCircularProgressIndicator(
-                          value: userData.goal > 0
-                              ? (userData.Day_Log.values
-                                      .fold(0, (sum, amount) => sum + amount) /
-                                  userData.goal)
-                              : 0.0,
-                          valueColor:
-                              AlwaysStoppedAnimation(const Color(0xFF369FFF)),
-                          backgroundColor: Colors.white,
-                          // borderColor: const Color(0xFF369FFF),
-                          // borderWidth: 5.0,
-                          direction: Axis.vertical,
-                        ),
-                      ),
-                      SizedBox(
-                        width: 20,
-                      ),
-                      Column(
-                        children: [
-                          Container(
-                            width: 150,
-                            padding: EdgeInsets.all(16.0),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2),
-                                  spreadRadius: 1,
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 3),
-                                ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: WaveWidget(
+                            config: CustomConfig(
+                              colors: [
+                                Color(0x695DCCFC),
+                                Color(0x695DCCFC),
                               ],
+                              durations: [4000, 3200],
+                              heightPercentages: [0.20, 0.25],
+                              blur: MaskFilter.blur(BlurStyle.solid, 10),
                             ),
-                            child: Column(
-                              children: [
-                                Row(
+                            waveAmplitude: 10,
+                            size: Size(double.infinity, 80),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Icon(Icons.water_drop,
+                                      color: Colors.blue, size: 27),
+                                  Text(
+                                    "Today's Progress ",
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    8.0, 3.0, 0.0, 3.0),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      userData.lastLog.isNotEmpty
-                                          ? _formatTime(DateTime.now().subtract(
-                                              userData.lastLog.keys.first))
-                                          : 'N/A',
-                                      style: GoogleFonts.poppins(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500),
+                                    RichText(
+                                      text: TextSpan(
+                                        children: [
+                                          TextSpan(
+                                            text: "${amountDrank}ml",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 16,
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          TextSpan(
+                                            text: "/ ${userData.goal}ml",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 16,
+                                              color: Colors.grey,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                    SizedBox(width: 7),
-                                    Expanded(
-                                      child: LinearProgressIndicator(
-                                        value: userData.goal > 0
-                                            ? userData.Day_Log.values.fold(
-                                                    0,
-                                                    (sum, amount) =>
-                                                        sum + amount) /
-                                                userData.goal
-                                            : 0.0,
-                                        backgroundColor: Colors.grey.shade300,
-                                        color: Colors.blue,
+                                    Spacer(),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          0.0, 0.0, 5.0, 0.0),
+                                      child: Text(
+                                        "${percentage.toStringAsFixed(0)}% complete",
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 16,
+                                          color: Colors.grey,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      userData.lastLog.isNotEmpty
-                                          ? "${userData.lastLog.values.first}ml"
-                                          : "0ml",
-                                      style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.w600),
-                                    ),
-                                    Text(
-                                      userData.goal > 0
-                                          ? "${((userData.Day_Log.values.fold(0, (sum, amount) => sum + amount) / userData.goal) * 100).round()}%"
-                                          : "0%",
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
+                              ),
+                              Spacer(),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, '/log');
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 13),
-                          Container(
-                            padding: const EdgeInsets.fromLTRB(12, 12, 35, 12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.5),
-                                  spreadRadius: 1,
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                Text("Target:",
-                                    style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: Colors.grey,
-                                        fontWeight: FontWeight.w500)),
-                                SizedBox(height: 5),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 5.0),
-                                  child: Text(
-                                    "${userData.goal}ml",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                child: Text(
+                                  "Log your water",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  Text("Statistics",
-                      style: GoogleFonts.poppins(
-                          fontSize: 16, fontWeight: FontWeight.w600)),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: WeeklyWaterTrackingChart(
-                        dayLog: userData.Log,
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 15),
+                Row(
+                  children: [
+                    SizedBox(
+                        width: 130,
+                        height: 130,
+                        child: WaterLottieIndicator(percentage: percentage)),
+                    SizedBox(width: 20),
+                    Column(
+                      children: [
+                        Container(
+                          width: 150,
+                          padding: EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    userData.lastLog.isNotEmpty
+                                        ? _formatTime(DateTime.now().subtract(
+                                            userData.lastLog.keys.first))
+                                        : 'N/A',
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500),
+                                  ),
+                                  SizedBox(width: 7),
+                                  Expanded(
+                                    child: LinearProgressIndicator(
+                                      value: userData.goal > 0
+                                          ? userData.Day_Log.values.fold(
+                                                  0,
+                                                  (sum, amount) =>
+                                                      sum + amount) /
+                                              userData.goal
+                                          : 0.0,
+                                      backgroundColor: Colors.grey.shade300,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    userData.lastLog.isNotEmpty
+                                        ? "${userData.lastLog.values.first}ml"
+                                        : "0ml",
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  Text(
+                                    userData.goal > 0
+                                        ? "${((userData.Day_Log.values.fold(0, (sum, amount) => sum + amount) / userData.goal) * 100).round()}%"
+                                        : "0%",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 13),
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 35, 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.5),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                "Target:",
+                                style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              SizedBox(height: 5),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 5.0),
+                                child: Text(
+                                  "${userData.goal}ml",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                Text(
+                  "Statistics",
+                  style: GoogleFonts.poppins(
+                      fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: WeeklyWaterTrackingChart(
+                      dayLog: userData.Log,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            bottomNavigationBar: navBar(
-              currentIndex: currentIndex,
-            ));
+          ),
+          bottomNavigationBar: navBar(
+            currentIndex: currentIndex,
+          ),
+        );
       },
     );
   }
@@ -416,7 +424,7 @@ class WaterTrackScreen extends StatelessWidget {
 class WeeklyWaterTrackingChart extends StatelessWidget {
   final Map<DateTime, int> dayLog;
 
-  WeeklyWaterTrackingChart({required this.dayLog});
+  const WeeklyWaterTrackingChart({super.key, required this.dayLog});
 
   @override
   Widget build(BuildContext context) {
@@ -424,12 +432,13 @@ class WeeklyWaterTrackingChart extends StatelessWidget {
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1)); // Monday
     final weekDays = List.generate(
-        7,
-        (i) => DateTime(
-              startOfWeek.year,
-              startOfWeek.month,
-              startOfWeek.day + i,
-            ));
+      7,
+      (i) => DateTime(
+        startOfWeek.year,
+        startOfWeek.month,
+        startOfWeek.day + i,
+      ),
+    );
 
     // Normalize dayLog dates to compare only year/month/day
     final normalizedLog = {
