@@ -4,14 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:water/model/userData.dart';
 
-// Boolean to track sign-up (true) or sign-in (false)
 bool _isSignUp = false;
 
-/// Service to handle Firebase Authentication
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// Returns the UID of the current user, or throws if not signed in.
   Future<String> getCurrentUID() async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -23,14 +20,9 @@ class AuthService {
     return user.uid;
   }
 
-  /// Signs in with email and password.
   Future<UserCredential> signIn(String email, String password) =>
-      _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      _auth.signInWithEmailAndPassword(email: email, password: password);
 
-  /// Registers a new user with email and password.
   Future<UserCredential> signUp(String email, String password) async {
     final userCredential = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -40,49 +32,62 @@ class AuthService {
     return userCredential;
   }
 
-  /// Signs out the current user.
   Future<void> signOut() => _auth.signOut();
 }
 
-/// Data provider syncing UserData with Firestore and handling daily logs.
 class Data extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AuthService _authService = AuthService();
 
   late final DocumentReference<Map<String, dynamic>> _docRef;
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _subscription;
   Timer? _dailyTimer;
 
-  // Initialize with empty maps including daily and historical logs
   UserData _user = UserData('', 0, {}, {}, {}, {}, '', {});
   UserData get user => _user;
 
   Data();
-// Boolean to track sign-up (true) or sign-in (false)
+
   bool get isSignUp => _isSignUp;
 
-  /// Initializes Firestore reference, loads data, and schedules daily save.
   Future<void> initialize() async {
     try {
       final uid = await _authService.getCurrentUID();
       _docRef = _firestore.collection('users').doc(uid);
 
-      // Load existing data
       final snapshot = await _docRef.get();
       if (snapshot.exists && snapshot.data() != null) {
         _user = UserData.fromJson(snapshot.data()!);
+
+        final today = DateTime.now();
+        final todayDate = DateTime(today.year, today.month, today.day);
+
+        if (_user.Log.isNotEmpty) {
+          final lastLogDate = _user.Log.keys.last;
+          final lastDate =
+              DateTime(lastLogDate.year, lastLogDate.month, lastLogDate.day);
+          if (todayDate.isAfter(lastDate)) {
+            await finishDay();
+          }
+        } else if (_user.Day_Log.isNotEmpty) {
+          // Get the first duration timestamp in Day_Log
+          final firstKey = _user.Day_Log.keys.first;
+          final time = DateTime(today.year, today.month, today.day)
+              .add(firstKey); // Combine duration with today
+          final logDate = DateTime(time.year, time.month, time.day);
+          if (logDate.isBefore(todayDate)) {
+            await finishDay();
+          }
+        }
+
         notifyListeners();
       }
 
-      // Schedule automatic end-of-day save at next midnight
       _scheduleDailySave();
     } catch (e) {
       if (kDebugMode) print('Initialization error: $e');
     }
   }
 
-  /// Schedules a one-time timer to trigger at the next midnight,
-  /// which will save the day's intake and reset daily logs.
   void _scheduleDailySave() {
     final now = DateTime.now();
     final nextMidnight =
@@ -92,12 +97,10 @@ class Data extends ChangeNotifier {
     _dailyTimer?.cancel();
     _dailyTimer = Timer(initialDelay, () async {
       await finishDay();
-      // Reschedule for the following day
       _scheduleDailySave();
     });
   }
 
-  /// Persists the current user data to Firestore.
   Future<void> _save() async {
     try {
       await _docRef.set(_user.toJson());
@@ -108,34 +111,29 @@ class Data extends ChangeNotifier {
 
   @override
   void dispose() {
-    _subscription?.cancel();
     _dailyTimer?.cancel();
     super.dispose();
   }
 
-  /// Overwrites data locally and remotely.
-  void updateFromDB(UserData userData) {
+  Future<void> updateFromDB(UserData userData) async {
     _user = userData;
-    _save();
+    await _save();
     notifyListeners();
   }
 
-  /// Updates the user's goal.
-  void setGoals(String goal) {
+  Future<void> setGoals(String goal) async {
     _user.goal = int.tryParse(goal) ?? 0;
-    _save();
+    await _save();
     notifyListeners();
   }
 
-  /// Updates the user's metrics map.
-  void setMetrics(Map<String, int> metrics) {
+  Future<void> setMetrics(Map<String, int> metrics) async {
     _user.metric = Map.from(metrics);
-    _save();
+    await _save();
     notifyListeners();
   }
 
-  /// Logs a water intake at the current timestamp.
-  void log(int amount) {
+  Future<void> log(int amount) async {
     final now = DateTime.now();
     final timestamp = Duration(
       hours: now.hour,
@@ -143,81 +141,13 @@ class Data extends ChangeNotifier {
       seconds: now.second,
       milliseconds: now.millisecond,
     );
+
     _user.Day_Log[timestamp] = amount;
     _user.lastLog = {timestamp: amount};
-    _save();
+    await _save();
     notifyListeners();
   }
 
-  /// Calculates the next reminder time and suggested amount.
-  (DateTime, int) calculateNextReminder() {
-    const double defaultInterval = 1.0;
-    const int defaultAmount = 250;
-    const double minInterval = 0.5;
-    const double maxInterval = 3.0;
-    const int startHour = 7;
-    const int endHour = 23;
-
-    final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day, startHour);
-    final end = DateTime(now.year, now.month, now.day, endHour);
-
-    if (_user.Day_Log.isEmpty) {
-      final next = now.add(Duration(hours: defaultInterval.toInt()));
-      final reminder = next.isAfter(end) ? end : next;
-      _user.nextLog = {
-        reminder.difference(DateTime(now.year, now.month, now.day)):
-            defaultAmount
-      };
-      _save();
-      return (reminder, defaultAmount);
-    }
-
-    // Compute elapsed and expected intake
-    final elapsed = now.isAfter(start) ? now.difference(start) : Duration.zero;
-    final totalTime = end.difference(start).inMinutes;
-    final expected =
-        totalTime > 0 ? _user.goal * (elapsed.inMinutes / totalTime) : 0.0;
-    final consumed = _user.Day_Log.values.fold(0, (sum, a) => sum + a);
-    final ratio = expected > 0 ? consumed / expected : 1.0;
-    final factor = ratio.clamp(0.5, 2.0);
-
-    // Average interval
-    final times = _user.Day_Log.keys.toList()..sort();
-    final avgInterval = times.length >= 2
-        ? times
-                .skip(1)
-                .map((t) => (t - times[times.indexOf(t) - 1]).inMinutes / 60)
-                .reduce((a, b) => a + b) /
-            (times.length - 1)
-        : defaultInterval;
-
-    final intervalHours =
-        (factor * avgInterval).clamp(minInterval, maxInterval);
-    final lastTime = DateTime(now.year, now.month, now.day).add(times.last);
-    var nextReminder =
-        lastTime.add(Duration(minutes: (intervalHours * 60).round()));
-    if (nextReminder.isBefore(now))
-      nextReminder = now.add(const Duration(minutes: 5));
-    if (nextReminder.isAfter(end)) nextReminder = end;
-
-    final remaining = _user.goal - consumed;
-    final remainingTime = end.difference(nextReminder).inMinutes;
-    final slots =
-        remainingTime > 0 ? (remainingTime / (intervalHours * 60)).ceil() : 1;
-    int suggestion = slots > 0 ? (remaining / slots).round() : remaining;
-    if (ratio < 1) suggestion = (suggestion * 1.15).round();
-
-    _user.nextLog = {
-      nextReminder.difference(DateTime(now.year, now.month, now.day)):
-          suggestion
-    };
-    _save();
-    return (nextReminder, suggestion);
-  }
-
-  /// Finalizes the current day by saving total intake to the daily Log
-  /// and then clearing the day's detailed logs.
   Future<void> finishDay() async {
     final totalIntake = _user.Day_Log.values.fold(0, (sum, a) => sum + a);
     final today = DateTime.now();
@@ -225,16 +155,15 @@ class Data extends ChangeNotifier {
     _user.Log[dateKey] = totalIntake;
 
     await _save();
-    resetDaily();
+    await resetDaily();
     notifyListeners();
   }
 
-  /// Clears daily logs.
-  void resetDaily() {
+  Future<void> resetDaily() async {
     _user.Day_Log.clear();
     _user.lastLog.clear();
     _user.nextLog.clear();
-    _save();
+    await _save();
     notifyListeners();
   }
 }

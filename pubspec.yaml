@@ -47,6 +47,10 @@ dependencies:
   cloud_firestore: ^4.15.4
   google_sign_in: ^6.2.1 # For Google auth
   lottie: ^2.6.0
+  flutter_local_notifications:
+  timezone: 
+  permission_handler:
+
 
 
 dev_dependencies:

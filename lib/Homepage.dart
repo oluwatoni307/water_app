@@ -85,7 +85,7 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
               children: [
                 const SizedBox(height: 30),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,16 +109,16 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
                         ),
                       ],
                     ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.notifications_none,
-                        color: Colors.blue,
-                        size: 40,
-                      ),
-                      onPressed: () {
-                        // TODO: Implement notification action
-                      },
-                    ),
+                    // IconButton(
+                    //   icon: const Icon(
+                    //     Icons.notifications_none,
+                    //     color: Colors.blue,
+                    //     size: 40,
+                    //   ),
+                    //   onPressed: () {
+                    //     // TODO: Implement notification action
+                    //   },
+                    // ),
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -248,7 +248,10 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
                     SizedBox(
                         width: 130,
                         height: 130,
-                        child: WaterLottieIndicator(percentage: percentage)),
+                        child: ElegantGlassWidget(
+                          level: percentage * 0.01, // 75% filled
+                          waterColor: Color(0xFF5DADE2), // Light blue water
+                        )),
                     SizedBox(width: 20),
                     Column(
                       children: [

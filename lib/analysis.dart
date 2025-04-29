@@ -29,12 +29,12 @@ class StatCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircleAvatar(
-              radius: 14,
+              radius: 12,
               backgroundColor: primaryColor.withOpacity(0.1),
               child: Icon(icon, color: primaryColor, size: 20),
             ),
@@ -46,7 +46,7 @@ class StatCard extends StatelessWidget {
                 Text(
                   label.toUpperCase(),
                   style: GoogleFonts.inter(
-                    fontSize: 10,
+                    fontSize: 7,
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[600],
                   ),
@@ -55,7 +55,7 @@ class StatCard extends StatelessWidget {
                 Text(
                   value,
                   style: GoogleFonts.poppins(
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Colors.black87,
                   ),
@@ -94,7 +94,7 @@ class StatsScreen extends StatelessWidget {
     final currentRoute = ModalRoute.of(context)?.settings.name ?? '/';
     final currentIndex = routes.indexOf(currentRoute);
 
-    const primaryColor = Color(0xFF369FFF);
+    // const primaryColor = Color(0xFF369FFF);
     const secondaryColor = Color(0xFF5DCCFC);
 
     return Scaffold(
@@ -120,9 +120,9 @@ class StatsScreen extends StatelessWidget {
             // Overview Stat Cards in 2-column grid
             GridView.count(
               crossAxisCount: 2,
-              crossAxisSpacing: 13,
-              mainAxisSpacing: 13,
-              childAspectRatio: 2,
+              crossAxisSpacing: 5,
+              mainAxisSpacing: 5,
+              childAspectRatio: 3 / 1.2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               children: [
@@ -153,7 +153,7 @@ class StatsScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Mini pies row (weekly)
             Text(
@@ -174,11 +174,17 @@ class StatsScreen extends StatelessWidget {
                   final date = DateTime.now().subtract(Duration(days: 6 - idx));
                   final key = DateTime(date.year, date.month, date.day);
                   final intake = log[key] ?? 0;
-                  final percent = goal > 0 ? (intake / goal).clamp(0, 1) : 0.0;
+                  // final percent = goal > 0 ? (intake / goal).clamp(0, 1) : 0.0;
+
+                  // Ensure non-zero slice for visibility
+                  // final filledValue = intake > 0 ? intake.toDouble() : 1.0;
+                  final emptyValue =
+                      (goal - intake).toDouble().clamp(0.0, goal.toDouble());
+
                   return Padding(
-                    padding: const EdgeInsets.only(right: 16),
+                    padding: const EdgeInsets.only(right: 2),
                     child: SizedBox(
-                      width: 80,
+                      width: 75,
                       child: Column(
                         children: [
                           Expanded(
@@ -186,23 +192,24 @@ class StatsScreen extends StatelessWidget {
                               PieChartData(
                                 sections: [
                                   PieChartSectionData(
-                                    value: intake.toDouble(),
-                                    color: primaryColor,
-                                    radius: 30,
-                                    title: '${(percent * 100).round()}%',
-                                    titleStyle: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white),
+                                    // value: filledValue,
+                                    color: Colors.blueGrey,
+                                    radius: 20,
+                                    // title: '${(percent * 100).round()}%',
+                                    // titleStyle: GoogleFonts.poppins(
+                                    //   fontSize: 12,
+                                    //   fontWeight: FontWeight.w600,
+                                    //   color: Colors.white,
+                                    // ),
                                   ),
                                   PieChartSectionData(
-                                    value: (goal - intake).toDouble().abs(),
-                                    color: Colors.grey.shade200,
-                                    radius: 30,
+                                    value: emptyValue,
+                                    color: Colors.grey.shade400, // darker grey
+                                    radius: 20,
                                     title: '',
                                   ),
                                 ],
-                                centerSpaceRadius: 20,
+                                centerSpaceRadius: 16,
                               ),
                             ),
                           ),
@@ -227,7 +234,7 @@ class StatsScreen extends StatelessWidget {
                 },
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // 30-day sparkline
             Text(
@@ -238,13 +245,17 @@ class StatsScreen extends StatelessWidget {
                 color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             SizedBox(
-              height: 200,
+              height: 155,
               child: LineChart(
                 LineChartData(
                   minY: 0,
-                  maxY: log.values.fold(0, (p, n) => n > p ? n : p).toDouble() *
+                  maxY: (log.values.isEmpty
+                          ? 100
+                          : log.values
+                              .reduce((a, b) => a > b ? a : b)
+                              .toDouble()) *
                       1.2,
                   gridData: FlGridData(show: false),
                   titlesData: FlTitlesData(show: false),
@@ -278,7 +289,6 @@ class StatsScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
 
             // Export or share button
           ],

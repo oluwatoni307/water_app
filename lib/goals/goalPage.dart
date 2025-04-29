@@ -93,6 +93,9 @@ class _GoalPageState extends State<GoalPage> {
 
   @override
   Widget build(BuildContext context) {
+    final data = Provider.of<Data>(context);
+    final goal = data.user.goal;
+    _controller.text = goal.toString();
     return Scaffold(
       backgroundColor: const Color(0xFF369FFF),
       appBar: PreferredSize(
