@@ -18,6 +18,8 @@ class _GoalPageState extends State<GoalPage> {
   @override
   void initState() {
     super.initState();
+    final goal = context.read<Data>().user.goal;
+    inputAmount = goal.toString();
     _controller = TextEditingController(text: inputAmount);
   }
 

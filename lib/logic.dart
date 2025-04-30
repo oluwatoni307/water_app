@@ -123,6 +123,9 @@ class Data extends ChangeNotifier {
 
   Future<void> setGoals(String goal) async {
     _user.goal = int.tryParse(goal) ?? 0;
+    _user.Day_Log.clear();
+    _user.lastLog.clear();
+    _user.nextLog.clear();
     await _save();
     notifyListeners();
   }
