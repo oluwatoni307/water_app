@@ -36,8 +36,10 @@ class _GoalPageState extends State<GoalPage> {
         context.read<Data>().setGoals(inputAmount);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
+              duration: Duration(seconds: 1), // Shorten the duration
+              behavior: SnackBarBehavior.floating, // Makes it floating
               content: Text('Goal saved successfully!'),
-              backgroundColor: Colors.green),
+              backgroundColor: Colors.blueGrey),
         );
         Navigator.pushNamed(context, '/metric'); // Navigate to GoalPage
       } else {
