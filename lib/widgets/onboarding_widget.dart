@@ -108,7 +108,7 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
                 child: Text(
                   widget.buttonText,
                   style: GoogleFonts.poppins(
-                    fontSize: 18,
+                    fontSize: 15,
                     color: Colors.white,
                   ),
                 ),
