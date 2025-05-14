@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:water/data/template_story.dart';
+import 'package:water/history.dart';
 
 class BoxTemp extends StatelessWidget {
   final String title;
@@ -20,6 +22,8 @@ class BoxTemp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onPressed,
+      onLongPress: () =>
+          _handleLongPress(context, title), // ✅ Pass context and title here
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         color: tapped ? Colors.blue[100] : Colors.white, // Highlight selection
@@ -44,12 +48,26 @@ class BoxTemp extends StatelessWidget {
                   if (icon != null)
                     Image.asset(
                       icon!,
-                      height: 25,
+                      height: 40,
                     ),
                 ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _handleLongPress(BuildContext context, String name) {
+    print(name);
+    String content = template[name] ?? 'No content found.';
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TitleContentCard(
+          title: name,
+          content: content,
         ),
       ),
     );

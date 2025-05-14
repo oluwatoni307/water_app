@@ -3,9 +3,11 @@ class UserData {
   final String userName;
   int goal;
   Map<String, int> metric;
+  DateTime currentDate;
 
-  /// Log of daily water intakes keyed by `DateTime` (date-only)
-  Map<DateTime, int> Log;
+  /// Log of daily water intakes as a list
+  List<int> Log;
+  List<bool> completed;
 
   Map<Duration, int> Day_Log;
   Map<Duration, int> lastLog;
@@ -20,9 +22,10 @@ class UserData {
     this.nextLog,
     this.id,
     this.Log,
+    this.currentDate,
+    this.completed,
   );
 
-  // Convert UserData to JSON for storage
   Map<String, dynamic> toJson() => {
         'id': id,
         'userName': userName,
@@ -34,10 +37,11 @@ class UserData {
             (key, value) => MapEntry(key.inMilliseconds.toString(), value)),
         'nextLog': nextLog.map(
             (key, value) => MapEntry(key.inMilliseconds.toString(), value)),
-        'Log': Log.map((key, value) => MapEntry(key.toIso8601String(), value)),
+        'Log': Log,
+        'currentDate': currentDate.toIso8601String(),
+        'completed': completed,
       };
 
-  // Create UserData from JSON
   factory UserData.fromJson(Map<String, dynamic> json) {
     return UserData(
       json['userName'] ?? '',
@@ -62,10 +66,10 @@ class UserData {
           ) ??
           {},
       json['id'] ?? '',
-      (json['Log'] as Map<String, dynamic>?)?.map(
-            (key, value) => MapEntry(DateTime.parse(key), value as int),
-          ) ??
-          {},
+      (json['Log'] as List<dynamic>?)?.map((e) => e as int).toList() ?? [],
+      DateTime.tryParse(json['currentDate'] ?? '') ?? DateTime.now(),
+      (json['completed'] as List<dynamic>?)?.map((e) => e as bool).toList() ??
+          [],
     );
   }
 }

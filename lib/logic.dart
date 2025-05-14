@@ -42,7 +42,8 @@ class Data extends ChangeNotifier {
   late final DocumentReference<Map<String, dynamic>> _docRef;
   Timer? _dailyTimer;
 
-  UserData _user = UserData('', 0, {}, {}, {}, {}, '', {});
+  UserData _user = UserData('', 0, {}, {}, {}, {}, '', [], DateTime.now(), []);
+
   UserData get user => _user;
 
   Data();
@@ -62,11 +63,12 @@ class Data extends ChangeNotifier {
         final todayDate = DateTime(today.year, today.month, today.day);
 
         if (_user.Log.isNotEmpty) {
-          final lastLogDate = _user.Log.keys.last;
+          final lastLogDate = _user.currentDate;
           final lastDate =
               DateTime(lastLogDate.year, lastLogDate.month, lastLogDate.day);
           if (todayDate.isAfter(lastDate)) {
             await finishDay();
+            print("updated");
           }
         } else if (_user.Day_Log.isNotEmpty) {
           // Get the first duration timestamp in Day_Log
@@ -152,10 +154,25 @@ class Data extends ChangeNotifier {
   }
 
   Future<void> finishDay() async {
+    final now = DateTime.now();
+    final current = DateTime(
+        _user.currentDate.year, _user.currentDate.month, _user.currentDate.day);
+    final today = DateTime(now.year, now.month, now.day);
+
+    final daysDifference = today.difference(current).inDays;
+
+    // Fill in 0 for missed days (excluding today)
+    for (int i = 0; i < daysDifference; i++) {
+      _user.Log.add(0);
+      _user.completed.add(false);
+    }
+
+    // Calculate and log today’s intake
     final totalIntake = _user.Day_Log.values.fold(0, (sum, a) => sum + a);
-    final today = DateTime.now();
-    final dateKey = DateTime(today.year, today.month, today.day);
-    _user.Log[dateKey] = totalIntake;
+    _user.Log.add(totalIntake);
+
+    // Update currentDate to today
+    _user.currentDate = today;
 
     await _save();
     await resetDaily();

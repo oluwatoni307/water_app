@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:water/Onboarding.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:water/logic.dart';
 
 import 'package:wave/wave.dart';
 import 'package:wave/config.dart';
@@ -20,9 +23,22 @@ class _SplashScreenState extends State<SplashScreen> {
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted) {
         // Check if widget is still mounted
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const OnBoardingPageView()),
-        );
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const OnBoardingPageView()),
+          );
+        } else {
+          // Run initialize() safely after the first frame
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final data = Provider.of<Data>(context, listen: false);
+            data.initialize();
+          });
+          Navigator.pushReplacementNamed(
+            context,
+            '/', // The named route you want to push to
+          );
+        }
       }
     });
   }

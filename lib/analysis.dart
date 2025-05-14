@@ -6,7 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:water/logic.dart';
 import 'package:water/widgets/navBar.dart';
 
-const List<String> routes = ['/', '/analysis', '/goals', '/settings'];
+const List<String> routes = [
+  '/',
+  '/analysis',
+  '/goals',
+  '/metric',
+  '/settings'
+];
 
 /// Reusable statistic card for overview metrics
 class StatCard extends StatelessWidget {
@@ -75,27 +81,22 @@ class StatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = Provider.of<Data>(context);
-    final log = data.user.Log; // Map<DateTime, int>
+    final log = data.user.Log; // List<int>
     final goal = data.user.goal;
 
-    // Compute overall stats
-    final daysLogged = log.length;
-    final daysGoalMet = log.values.where((intake) => intake >= goal).length;
-    final avgIntake = daysLogged > 0
-        ? (log.values.reduce((a, b) => a + b) / daysLogged).round()
+    final daysLogged = log.where((v) => v > 0).length;
+    final daysGoalMet = log.where((v) => v >= goal).length;
+    final avgIntake =
+        daysLogged > 0 ? (log.reduce((a, b) => a + b) / daysLogged).round() : 0;
+    final highest = log.isNotEmpty ? log.reduce((a, b) => a > b ? a : b) : 0;
+    final lowest = log.where((v) => v > 0).isNotEmpty
+        ? log.where((v) => v > 0).reduce((a, b) => a < b ? a : b)
         : 0;
-    final highest = log.entries.isNotEmpty
-        ? log.entries.reduce((a, b) => a.value > b.value ? a : b)
-        : MapEntry(DateTime.now(), 0);
-    final lowest = log.entries.isNotEmpty
-        ? log.entries.reduce((a, b) => a.value < b.value ? a : b)
-        : MapEntry(DateTime.now(), 0);
 
     final currentRoute = ModalRoute.of(context)?.settings.name ?? '/';
     final currentIndex = routes.indexOf(currentRoute);
 
     // const primaryColor = Color(0xFF369FFF);
-    const secondaryColor = Color(0xFF5DCCFC);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FB),
@@ -144,12 +145,12 @@ class StatsScreen extends StatelessWidget {
                 StatCard(
                   icon: Icons.trending_up,
                   label: 'Highest Intake',
-                  value: '${highest.value}ml',
+                  value: '${highest}ml',
                 ),
                 StatCard(
                   icon: Icons.trending_down,
                   label: 'Lowest Intake',
-                  value: '${lowest.value}ml',
+                  value: '${lowest}ml',
                 ),
               ],
             ),
@@ -173,7 +174,9 @@ class StatsScreen extends StatelessWidget {
                 itemBuilder: (context, idx) {
                   final date = DateTime.now().subtract(Duration(days: 6 - idx));
                   final key = DateTime(date.year, date.month, date.day);
-                  final intake = log[key] ?? 0;
+                  final intake = idx < log.length
+                      ? log[idx]
+                      : 0; // Corrected to use log as List<int>
                   // final percent = goal > 0 ? (intake / goal).clamp(0, 1) : 0.0;
 
                   // Ensure non-zero slice for visibility
@@ -246,16 +249,15 @@ class StatsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
+            const SizedBox(height: 10),
             SizedBox(
               height: 155,
               child: LineChart(
                 LineChartData(
                   minY: 0,
-                  maxY: (log.values.isEmpty
+                  maxY: (log.isEmpty
                           ? 100
-                          : log.values
-                              .reduce((a, b) => a > b ? a : b)
-                              .toDouble()) *
+                          : log.reduce((a, b) => a > b ? a : b).toDouble()) *
                       1.2,
                   gridData: FlGridData(show: false),
                   titlesData: FlTitlesData(show: false),
@@ -263,27 +265,15 @@ class StatsScreen extends StatelessWidget {
                   lineBarsData: [
                     LineChartBarData(
                       spots: List.generate(30, (i) {
-                        final date =
-                            DateTime.now().subtract(Duration(days: 29 - i));
-                        final key = DateTime(date.year, date.month, date.day);
-                        final val = log[key] ?? 0;
+                        final val = i < log.length
+                            ? log[i]
+                            : 0; // Corrected to use log as List<int>
                         return FlSpot(i.toDouble(), val.toDouble());
                       }),
                       isCurved: true,
-                      color: secondaryColor,
                       barWidth: 3,
+                      isStrokeCapRound: true,
                       dotData: FlDotData(show: false),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        gradient: LinearGradient(
-                          colors: [
-                            secondaryColor.withOpacity(0.3),
-                            secondaryColor.withOpacity(0.05)
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
                     ),
                   ],
                 ),

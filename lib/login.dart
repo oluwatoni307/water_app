@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:water/sign_up.dart';
 import 'logic.dart'; // contains AuthService & Data
 import 'Homepage.dart'; // your post‑login landing page
@@ -35,6 +36,11 @@ class _LoginScreenState extends State<LoginScreen> {
       //    context.read<Data>()._initialize();
       //
       //    Otherwise, Data() constructor already starts listening.
+      // Run initialize() safely after the first frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final data = Provider.of<Data>(context, listen: false);
+        data.initialize();
+      });
 
       // 3) Navigate to home
       Navigator.pushReplacement(

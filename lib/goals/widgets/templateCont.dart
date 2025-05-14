@@ -56,9 +56,9 @@ class TemplateGoalContainer extends StatelessWidget {
               child: GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.8,
+                  crossAxisSpacing: 6,
+                  mainAxisSpacing: 6,
+                  childAspectRatio: 1.65,
                 ),
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),

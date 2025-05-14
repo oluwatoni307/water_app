@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:water/model/box_model.dart';
 import 'package:water/goals/widgets/boxTemp.dart';
-import 'package:water/goals/widgets/new_metric.dart';
 import 'package:water/logic.dart';
 import 'package:provider/provider.dart';
 
@@ -25,13 +24,13 @@ class _MetricpageState extends State<Metricpage> {
     });
   }
 
-  // Add a new custom metric
-  void _addMetric(String name, int quantity) {
-    setState(() {
-      metric.add(BoxModel(title: name, value: quantity));
-      user_metric.add(BoxModel(title: name, value: quantity));
-    });
-  }
+  // // Add a new custom metric
+  // void _addMetric(String name, int quantity) {
+  //   setState(() {
+  //     fruits.add(BoxModel(title: name, value: quantity));
+  //     user_metric.add(BoxModel(title: name, value: quantity));
+  //   });
+  // }
 
   // Save selected metrics to Data provider
   void saveMetric() {
@@ -141,16 +140,16 @@ class _MetricpageState extends State<Metricpage> {
                       mainAxisSpacing: 10,
                       childAspectRatio: 1.5,
                     ),
-                    itemCount: metric.length,
+                    itemCount: fruits.length,
                     itemBuilder: (context, index) {
                       bool exists = user_metric
-                          .any((met) => met.title == metric[index].title);
+                          .any((met) => met.title == fruits[index].title);
                       return BoxTemp(
-                        title: metric[index].title,
-                        value: metric[index].value,
-                        icon: metric[index].icon,
+                        title: fruits[index].title,
+                        value: fruits[index].value,
+                        icon: fruits[index].icon,
                         onPressed: () => _tappedMetrics(
-                            metric[index].title, metric[index].value),
+                            fruits[index].title, fruits[index].value),
                         tapped: exists,
                       );
                     },
@@ -161,58 +160,22 @@ class _MetricpageState extends State<Metricpage> {
               const SizedBox(height: 24),
 
               // Buttons at the bottom
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return Dialog(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
-                              backgroundColor: Colors.transparent,
-                              child: NewDialog(onMetricAdded: _addMetric),
-                            );
-                          },
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Add New Metric',
-                        style: TextStyle(fontSize: 16),
-                      ),
+              Center(
+                child: ElevatedButton(
+                  onPressed: saveMetric,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    ElevatedButton(
-                      onPressed: saveMetric,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Finish',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ],
+                  ),
+                  child: const Text(
+                    'Finish',
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
             ],

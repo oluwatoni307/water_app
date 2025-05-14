@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 
 class navBar extends StatelessWidget {
-  static const List<String> routes = ['/', '/analysis', '/goals', '/settings'];
+  static const List<String> routes = [
+    '/',
+    '/analysis',
+    '/goals',
+    '/metric',
+    '/settings'
+  ];
   final int currentIndex;
 
   const navBar({super.key, required this.currentIndex});
@@ -34,6 +40,10 @@ class navBar extends StatelessWidget {
         BottomNavigationBarItem(
           icon: Icon(Icons.settings, color: Colors.blueGrey),
           label: "Goal",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.tune, color: Colors.blueGrey),
+          label: "Metrics",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person, color: Colors.blueGrey),

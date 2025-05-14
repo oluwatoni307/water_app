@@ -41,7 +41,8 @@ class _GoalPageState extends State<GoalPage> {
               content: Text('Goal saved successfully!'),
               backgroundColor: Colors.blueGrey),
         );
-        Navigator.pushNamed(context, '/metric'); // Navigate to GoalPage
+        Navigator.pushReplacementNamed(
+            context, '/'); // Navigate to GoalPage and replace current
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

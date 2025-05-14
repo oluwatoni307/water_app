@@ -80,6 +80,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       final uid = cred.user!.uid;
       print("2. Auth user created with UID: $uid");
+      DateTime today = DateTime.now();
+
+      DateTime todayDate = DateTime(today.year, today.month, today.day);
 
       // 2) Create initial user document in Firestore
       final initial = UserData(
@@ -90,7 +93,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           {}, // empty lastLog
           {}, // empty nextLog
           uid,
-          {});
+          [],
+          todayDate,
+          []);
 
       try {
         await FirebaseFirestore.instance

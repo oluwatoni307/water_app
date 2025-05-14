@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -51,26 +50,29 @@ class MyApp extends StatelessWidget {
         '/analysis': (context) => StatsScreen(),
         '/goals': (context) => GoalPage(),
         '/metric': (context) => Metricpage(),
-        '/': (context) => WaterTrackScreen(),
-        '/login': (context) => StreamBuilder<User?>(
-              stream: FirebaseAuth.instance.authStateChanges(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const SplashScreen(); // or loader
-                }
+        '/login': (context) => LoginScreen(),
 
-                if (snapshot.hasData) {
-                  // Firebase restored session — safe to init
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final data = Provider.of<Data>(context, listen: false);
-                    data.initialize(); // 👈 safe place to call now
-                  });
-                  return const WaterTrackScreen();
-                } else {
-                  return const LoginScreen();
-                }
-              },
-            ),
+        '/': (context) => WaterTrackScreen(),
+        // '/login': (context) => StreamBuilder<User?>(
+        //       stream: FirebaseAuth.instance.authStateChanges(),
+        //       builder: (context, snapshot) {
+        //         if (snapshot.connectionState == ConnectionState.waiting) {
+        //           return const SplashScreen(); // or loader
+        //         }
+
+        //         // User is signed in
+        //         if (snapshot.hasData) {
+        //           WidgetsBinding.instance.addPostFrameCallback((_) {
+        //             final data = Provider.of<Data>(context, listen: false);
+        //             data.initialize(); // Safe to call after build
+        //           });
+        //           return const WaterTrackScreen();
+        //         }
+
+        //         // User is not signed in
+        //         return const LoginScreen();
+        //       },
+        //     ),
       },
       debugShowCheckedModeBanner: false,
     );
