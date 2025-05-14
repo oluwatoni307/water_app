@@ -72,12 +72,12 @@ class Data extends ChangeNotifier {
           }
         } else if (_user.Day_Log.isNotEmpty) {
           // Get the first duration timestamp in Day_Log
-          final firstKey = _user.Day_Log.keys.first;
-          final time = DateTime(today.year, today.month, today.day)
-              .add(firstKey); // Combine duration with today
-          final logDate = DateTime(time.year, time.month, time.day);
-          if (logDate.isBefore(todayDate)) {
+          final lastLogDate = _user.currentDate;
+          final lastDate =
+              DateTime(lastLogDate.year, lastLogDate.month, lastLogDate.day);
+          if (todayDate.isAfter(lastDate)) {
             await finishDay();
+            print("updated");
           }
         }
 
