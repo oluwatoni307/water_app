@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:water/model/box_model.dart';
 import 'package:water/goals/widgets/boxTemp.dart';
 
@@ -30,22 +31,26 @@ class TemplateGoalContainer extends StatelessWidget {
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
                 Text(
-                  'Template Goal',
-                  style: TextStyle(
+                  'Hydrate Smart for the Season 💧',
+                  style: GoogleFonts.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'We prepared a lot of goals for you!',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  'Tap to select a goal. Long-press to learn the story behind each season.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.blueGrey, // Tailwind gray-400
+                  ),
                 ),
               ],
             ),

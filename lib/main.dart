@@ -36,6 +36,22 @@ void main() async {
   ));
 }
 
+final Color primaryColor = const Color(0xFF2196F3); // Blue primary color
+final Color secondaryColor = const Color(0xFF64B5F6); // Lighter blue secondary
+final Color backgroundColor = const Color(0xFFF4F8FB); // Light background
+final Color errorColor = Colors.red; // Error color
+
+ThemeData getAppTheme() {
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: primaryColor,
+      secondary: secondaryColor,
+    ),
+    scaffoldBackgroundColor: backgroundColor,
+  );
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -44,6 +60,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKey,
       initialRoute: '/splash',
+      theme: getAppTheme(),
       routes: {
         '/splash': (context) => SplashScreen(),
         '/log': (context) => Log(),
@@ -51,28 +68,7 @@ class MyApp extends StatelessWidget {
         '/goals': (context) => GoalPage(),
         '/metric': (context) => Metricpage(),
         '/login': (context) => LoginScreen(),
-
         '/': (context) => WaterTrackScreen(),
-        // '/login': (context) => StreamBuilder<User?>(
-        //       stream: FirebaseAuth.instance.authStateChanges(),
-        //       builder: (context, snapshot) {
-        //         if (snapshot.connectionState == ConnectionState.waiting) {
-        //           return const SplashScreen(); // or loader
-        //         }
-
-        //         // User is signed in
-        //         if (snapshot.hasData) {
-        //           WidgetsBinding.instance.addPostFrameCallback((_) {
-        //             final data = Provider.of<Data>(context, listen: false);
-        //             data.initialize(); // Safe to call after build
-        //           });
-        //           return const WaterTrackScreen();
-        //         }
-
-        //         // User is not signed in
-        //         return const LoginScreen();
-        //       },
-        //     ),
       },
       debugShowCheckedModeBanner: false,
     );

@@ -10,46 +10,54 @@ class Metricpage extends StatefulWidget {
 }
 
 class _MetricpageState extends State<Metricpage> {
-  List<BoxModel> user_metric = [];
+  List<BoxModel> userMetric = [];
 
-  // Handle tapping on a metric to add/remove it
+  @override
+  void initState() {
+    super.initState();
+    final existingMetrics = context.read<Data>().user.metric;
+    userMetric = fruits
+        .where((fruit) => existingMetrics.containsKey(fruit.title))
+        .map((fruit) => BoxModel(title: fruit.title, value: fruit.value))
+        .toList();
+  }
+
   void _tappedMetrics(String name, int quantity) {
     setState(() {
-      bool exists = user_metric.any((metric) => metric.title == name);
+      bool exists = userMetric.any((metric) => metric.title == name);
       if (exists) {
-        user_metric.removeWhere((metric) => metric.title == name);
+        userMetric.removeWhere((metric) => metric.title == name);
       } else {
-        user_metric.add(BoxModel(title: name, value: quantity));
+        userMetric.add(BoxModel(title: name, value: quantity));
       }
     });
   }
 
-  // // Add a new custom metric
-  // void _addMetric(String name, int quantity) {
-  //   setState(() {
-  //     fruits.add(BoxModel(title: name, value: quantity));
-  //     user_metric.add(BoxModel(title: name, value: quantity));
-  //   });
-  // }
-
-  // Save selected metrics to Data provider
   void saveMetric() {
     try {
-      Map<String, int> metricMap = {};
-      for (var metric in user_metric) {
-        metricMap[metric.title] = metric.value;
+      if (userMetric.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Please select at least one fruit to track hydration.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
       }
+
+      Map<String, int> metricMap = {
+        for (var metric in userMetric) metric.title: metric.value,
+      };
 
       context.read<Data>().setMetrics(metricMap);
 
-      if (user_metric.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Metrics saved successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fruit metrics saved! Stay hydrated 🍉🍍🥭'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
       Navigator.pushReplacementNamed(context, '/');
     } catch (e) {
@@ -64,8 +72,10 @@ class _MetricpageState extends State<Metricpage> {
 
   @override
   Widget build(BuildContext context) {
+    const EdgeInsets pagePadding = EdgeInsets.symmetric(horizontal: 16.0);
+
     return Scaffold(
-      backgroundColor: Colors.grey[200], // Subtle background color
+      backgroundColor: Colors.grey[200],
       body: SafeArea(
         child: Container(
           width: double.infinity,
@@ -85,7 +95,6 @@ class _MetricpageState extends State<Metricpage> {
           ),
           child: Column(
             children: [
-              // Header with back arrow and title
               Padding(
                 padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
                 child: Row(
@@ -93,12 +102,12 @@ class _MetricpageState extends State<Metricpage> {
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.black),
                       onPressed: () {
-                        Navigator.pop(context); // Navigate back
+                        Navigator.pop(context);
                       },
                     ),
                     const Expanded(
                       child: Text(
-                        'Metrics',
+                        'Fruit Hydration',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -107,17 +116,14 @@ class _MetricpageState extends State<Metricpage> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    const SizedBox(
-                        width: 48), // Balance the layout with back arrow
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
-
-              // Subtitle
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                padding: pagePadding,
                 child: Text(
-                  'We prepared a lot of metrics for you, you can also choose one of these',
+                  'Choose the fruits you enjoy most! They help track your hydration. Long-press any fruit to discover its benefits.',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey,
@@ -125,13 +131,10 @@ class _MetricpageState extends State<Metricpage> {
                   textAlign: TextAlign.center,
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // Grid of metrics
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: pagePadding,
                   child: GridView.builder(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
@@ -142,24 +145,24 @@ class _MetricpageState extends State<Metricpage> {
                     ),
                     itemCount: fruits.length,
                     itemBuilder: (context, index) {
-                      bool exists = user_metric
-                          .any((met) => met.title == fruits[index].title);
-                      return BoxTemp(
-                        title: fruits[index].title,
-                        value: fruits[index].value,
-                        icon: fruits[index].icon,
-                        onPressed: () => _tappedMetrics(
-                            fruits[index].title, fruits[index].value),
-                        tapped: exists,
+                      final fruit = fruits[index];
+                      final isSelected =
+                          userMetric.any((m) => m.title == fruit.title);
+                      return GestureDetector(
+                        child: BoxTemp(
+                          title: fruit.title,
+                          value: fruit.value,
+                          icon: fruit.icon,
+                          onPressed: () =>
+                              _tappedMetrics(fruit.title, fruit.value),
+                          tapped: isSelected,
+                        ),
                       );
                     },
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // Buttons at the bottom
               Center(
                 child: ElevatedButton(
                   onPressed: saveMetric,
@@ -178,6 +181,7 @@ class _MetricpageState extends State<Metricpage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),

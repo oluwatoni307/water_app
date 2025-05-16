@@ -13,8 +13,8 @@ class BoxModel {
 final List<BoxModel> template = [
   BoxModel(title: 'Dry Season', value: 4000, icon: 'images/suny.png'),
   BoxModel(
-      title: 'Raining Season', value: 3000, icon: 'images/raining season.png'),
-  BoxModel(title: 'harmattan', value: 3500, icon: 'images/Hamattan.png'),
+      title: 'Rainy Season', value: 3000, icon: 'images/raining season.png'),
+  BoxModel(title: 'Harmattan', value: 3500, icon: 'images/Hamattan.png'),
 ];
 
 final List<BoxModel> fruits = [

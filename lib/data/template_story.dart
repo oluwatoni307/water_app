@@ -1,7 +1,7 @@
 Map<String, String> template = {
-  "Raining Season": Rainy,
+  "RainY Season": Rainy,
   "Dry Season": Sunny,
-  "harmattan": Hamatan,
+  "Harmattan": Hamatan,
 
   // Fruits
   "Watermelon": Watermelon,
@@ -17,18 +17,50 @@ Map<String, String> template = {
 };
 
 String Rainy = """
-Nigeria's rainy season spans April to October, bringing cooling showers that transform the landscape. Southern cities experience heavy downpours and humidity, while northern regions receive shorter but vital rainfall that rejuvenates the environment. During this period, temperatures drop noticeably across the country.
+# Hydration During Nigeria's Rainy Season
 
-Despite cooler temperatures, staying hydrated remains essential. Adults should drink 2-3 liters (2000-3000 ml or 8-12 cups) daily, while children need 1-2 liters (1000-2000 ml or 4-8 cups). Regular hydration strengthens your immune system, improves concentration, maintains energy levels, and supports digestion. Even when not feeling thirsty in cool weather, consistent water intake helps your body function optimally..""";
+Season Traits: cool, cloudy, often low-energy
+**Theme: Self-care during cool, cloudy weather**
+
+Nigeria's rainy season (April-October) brings cooling showers that transform the landscape. During this period, expect heavy downpours, increased humidity, and noticeably lower temperatures.
+
+Even in cooler temperatures, hydration remains essential:
+- Adults: at least 2-3 liters (2000-3000 ml or 8-12 cups) daily
+- Children: at least 1-2 liters (1000-2000 ml or 4-8 cups) daily
+
+"Don't let the rain wash away your momentum. Regular hydration strengthens your immune system, improves concentration, and maintains energy when you need it most."
+
+""";
 String Sunny = """
-Nigeria's dry season extends from November to March, characterized by scarce rainfall and rising temperatures. The southern regions experience moderate heat with occasional light showers, while the northern areas face intense heat and completely dry conditions. During this period, rivers recede, vegetation browns, and the landscape transforms as humidity levels drop dramatically across the country.
+# Hydration During Nigeria's Dry Season
 
-During the dry season, increased hydration becomes crucial. Adults should consume 3-4 liters (3000-4000 ml or 12-16 cups) of water daily, while children need 1.5-2.5 liters (1500-2500 ml or 6-10 cups) depending on their age and activity level. Proper hydration helps regulate body temperature during high heat, prevents dehydration from increased perspiration, supports cognitive function, and maintains skin health against the harsh dryness. Even when indoors or in shade, consistent water intake throughout the day is essential as the body loses moisture more rapidly in the dry conditions.""";
+Season Traits: hot, dusty, often fatiguing
+Theme: Resilience, hydration, and beating exhaustion**
+
+Nigeria's dry season (November-March) brings scarce rainfall and rising temperatures. During this period, expect intense heat, receding rivers, browning vegetation, and dramatically lower humidity levels.
+
+Even during hot, dusty conditions, hydration becomes even more crucial:
+- Adults: at least 3-4 liters (3000-4000 ml or 12-16 cups) daily
+- Children: at least 1.5-2.5 liters (1500-2500 ml or 6-10 cups) daily
+
+"Don't sweat it — proper hydration helps regulate body temperature, prevents dehydration from increased perspiration, supports cognitive function, and maintains skin health against the harsh dryness.""";
 String Hamatan = """
-Nigeria's Harmattan season arrives between December and February when dry, dusty winds blow from the Sahara Desert southward. This period brings extremely low humidity, hazy skies, and cooler nighttime temperatures. The northern regions experience the most intense effects with reduced visibility from dust particles, while southern areas receive milder conditions. During Harmattan, skin and respiratory issues often increase due to the extreme dryness.
-The Harmattan's deceptive dryness makes hydration particularly important despite cooler temperatures. Adults should maintain intake of 2.5-3.5 liters (2500-3500 ml or 10-14 cups) daily, while children need 1.5-2 liters (1500-2000 ml or 6-8 cups). Proper hydration helps counteract the season's drying effects on mucous membranes, prevents respiratory discomfort, maintains skin moisture against cracking, and supports overall health. The dry air accelerates moisture loss from the body even when you don't feel hot, making consistent water consumption essential.
+# Hydration During Nigeria's Harmattan Season
+
+Season Traits: cold mornings, dusty air, low visibility
+Theme: Clarity, wellness, and preparation**
+
+Nigeria's Harmattan season (December-February) brings dry, dusty winds from the Sahara Desert. During this period, expect extremely low humidity, hazy skies, cooler nighttime temperatures, and reduced visibility from dust particles.
+
+Even during these deceptively dry conditions, hydration remains crucial:
+- Adults: at least 2.5-3.5 liters (2500-3500 ml or 10-14 cups) daily
+- Children: at least 1.5-2 liters (1500-2000 ml or 6-8 cups) daily
+
+"The air might be dry and hazy, but proper hydration helps counteract drying effects on mucous membranes, prevents respiratory discomfort, maintains skin moisture against cracking, and supports overall health even when you don't feel hot.
 """;
 String Watermelon = """
+
+
 Watermelon is a large, refreshing fruit with a sweet, juicy red interior. It's a popular choice for cooling down in hot weather. Watermelon is made up of about 92% water, and an average whole watermelon (about 5 kg) contains approximately 4.6 liters (4600 ml) of water. Its high water content helps replenish fluids, while its rich vitamin A and C levels support skin health, immune function, and provide antioxidants like lycopene, which may help reduce the risk of heart disease and certain cancers.
 """;
 

@@ -1,4 +1,3 @@
-// stats_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -75,6 +74,94 @@ class StatCard extends StatelessWidget {
   }
 }
 
+/// Stateful widget for a single day pie with tooltip
+class DayPie extends StatefulWidget {
+  final int intake;
+  final int goal;
+  final String label;
+  const DayPie(
+      {Key? key, required this.intake, required this.goal, required this.label})
+      : super(key: key);
+
+  @override
+  _DayPieState createState() => _DayPieState();
+}
+
+class _DayPieState extends State<DayPie> {
+  int? _touchedIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final filledValue = widget.intake.toDouble().clamp(0.0, double.infinity);
+    final emptyValue = (widget.goal - filledValue).clamp(0.0, double.infinity);
+
+    return SizedBox(
+      width: 60,
+      child: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PieChart(
+                  PieChartData(
+                    sectionsSpace: 0,
+                    centerSpaceRadius: 14,
+                    pieTouchData: PieTouchData(
+                      touchCallback: (event, resp) {
+                        if (resp == null || resp.touchedSection == null) {
+                          setState(() => _touchedIndex = null);
+                          return;
+                        }
+                        setState(() => _touchedIndex =
+                            resp.touchedSection!.touchedSectionIndex);
+                      },
+                    ),
+                    sections: [
+                      PieChartSectionData(
+                        value: filledValue,
+                        color: Colors.blueGrey,
+                        radius: 18,
+                        title: '',
+                      ),
+                      if (emptyValue > 0)
+                        PieChartSectionData(
+                          value: emptyValue,
+                          color: Colors.grey.shade300,
+                          radius: 18,
+                          title: '',
+                        ),
+                    ],
+                  ),
+                ),
+                if (_touchedIndex != null)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${widget.intake}ml\n${((filledValue / widget.goal) * 100).clamp(0.0, 100.0).round()}%',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            widget.label,
+            style: TextStyle(color: Colors.grey[700], fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class StatsScreen extends StatelessWidget {
   const StatsScreen({Key? key}) : super(key: key);
 
@@ -95,8 +182,9 @@ class StatsScreen extends StatelessWidget {
 
     final currentRoute = ModalRoute.of(context)?.settings.name ?? '/';
     final currentIndex = routes.indexOf(currentRoute);
-
-    // const primaryColor = Color(0xFF369FFF);
+    final last7 = log.length >= 7
+        ? log.sublist(log.length - 7)
+        : List.filled(7 - log.length, 0) + log;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FB),
@@ -173,71 +261,23 @@ class StatsScreen extends StatelessWidget {
                 itemCount: 7,
                 itemBuilder: (context, idx) {
                   final date = DateTime.now().subtract(Duration(days: 6 - idx));
-                  final key = DateTime(date.year, date.month, date.day);
-                  final intake = idx < log.length
-                      ? log[idx]
-                      : 0; // Corrected to use log as List<int>
-                  // final percent = goal > 0 ? (intake / goal).clamp(0, 1) : 0.0;
-
-                  // Ensure non-zero slice for visibility
-                  // final filledValue = intake > 0 ? intake.toDouble() : 1.0;
-                  final emptyValue =
-                      (goal - intake).toDouble().clamp(0.0, goal.toDouble());
-
+                  final weekday = [
+                    'Mon',
+                    'Tue',
+                    'Wed',
+                    'Thu',
+                    'Fri',
+                    'Sat',
+                    'Sun'
+                  ][date.weekday - 1];
+                  final intake = last7[idx];
                   return Padding(
-                    padding: const EdgeInsets.only(right: 2),
-                    child: SizedBox(
-                      width: 75,
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: PieChart(
-                              PieChartData(
-                                sections: [
-                                  PieChartSectionData(
-                                    // value: filledValue,
-                                    color: Colors.blueGrey,
-                                    radius: 20,
-                                    // title: '${(percent * 100).round()}%',
-                                    // titleStyle: GoogleFonts.poppins(
-                                    //   fontSize: 12,
-                                    //   fontWeight: FontWeight.w600,
-                                    //   color: Colors.white,
-                                    // ),
-                                  ),
-                                  PieChartSectionData(
-                                    value: emptyValue,
-                                    color: Colors.grey.shade400, // darker grey
-                                    radius: 20,
-                                    title: '',
-                                  ),
-                                ],
-                                centerSpaceRadius: 16,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            [
-                              'Mon',
-                              'Tue',
-                              'Wed',
-                              'Thu',
-                              'Fri',
-                              'Sat',
-                              'Sun'
-                            ][key.weekday - 1],
-                            style: TextStyle(
-                                color: Colors.grey[700], fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
+                    padding: const EdgeInsets.only(right: 4),
+                    child: DayPie(intake: intake, goal: goal, label: weekday),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 20),
 
             // 30-day sparkline
             Text(
@@ -248,7 +288,6 @@ class StatsScreen extends StatelessWidget {
                 color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 10),
             const SizedBox(height: 10),
             SizedBox(
               height: 155,
@@ -265,9 +304,7 @@ class StatsScreen extends StatelessWidget {
                   lineBarsData: [
                     LineChartBarData(
                       spots: List.generate(30, (i) {
-                        final val = i < log.length
-                            ? log[i]
-                            : 0; // Corrected to use log as List<int>
+                        final val = i < log.length ? log[i] : 0;
                         return FlSpot(i.toDouble(), val.toDouble());
                       }),
                       isCurved: true,
@@ -279,8 +316,6 @@ class StatsScreen extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Export or share button
           ],
         ),
       ),

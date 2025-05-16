@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:water/goals/widgets/numberpad.dart';
 import 'package:water/goals/widgets/templateCont.dart';
 import 'package:water/logic.dart';
@@ -36,11 +37,13 @@ class _GoalPageState extends State<GoalPage> {
         context.read<Data>().setGoals(inputAmount);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              duration: Duration(seconds: 1), // Shorten the duration
-              behavior: SnackBarBehavior.floating, // Makes it floating
-              content: Text('Goal saved successfully!'),
-              backgroundColor: Colors.blueGrey),
+            content: Text('Awesome! Your hydration goal is saved 💦'),
+            duration: Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.blueGrey,
+          ),
         );
+
         Navigator.pushReplacementNamed(
             context, '/'); // Navigate to GoalPage and replace current
       } else {
@@ -118,11 +121,15 @@ class _GoalPageState extends State<GoalPage> {
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
-            title: const Text(
-              'Goal Page',
-              style: TextStyle(
+            title: Text(
+              'Set Your Daily Hydration Goal 💧',
+              style: GoogleFonts.poppins(
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
+                fontSize: 16, // Optimal for AppBar
+                fontWeight:
+                    FontWeight.w600, // Semi-bold: professional yet friendly
+                // letterSpacing: 0.5,
+                // height: 1.3, // Adjust line height if wrapped
               ),
             ),
             centerTitle: true,
@@ -148,12 +155,13 @@ class _GoalPageState extends State<GoalPage> {
                     ),
                     decoration: const InputDecoration(
                       border: InputBorder.none,
-                      hintText: '0',
+                      hintText: 'Enter your goal (ml)',
                       hintStyle: TextStyle(
                         color: Colors.grey,
-                        fontSize: 48,
+                        fontSize: 24,
                       ),
                     ),
+
                     readOnly:
                         true, // Prevent manual typing, use number pad or templates
                   ),
@@ -172,7 +180,7 @@ class _GoalPageState extends State<GoalPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text('Choose Goal  from Template'),
+              child: const Text('Choose a Goal Template'),
             ),
           ),
           CustomNumberPad(

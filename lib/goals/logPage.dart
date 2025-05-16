@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:water/goals/widgets/userMetric.dart';
 import 'package:water/goals/widgets/numberpad.dart';
 import 'package:wave/wave.dart';
@@ -16,15 +17,37 @@ class _LogState extends State<Log> {
   int selectedCategoryIndex = -1;
 
   void onCategorySelected(int index, int value) {
+    HapticFeedback.lightImpact();
     setState(() {
-      selectedCategoryIndex = index;
-      inputAmount = value.toString();
+      if (selectedCategoryIndex == index) {
+        // Deselect
+        selectedCategoryIndex = -1;
+        inputAmount = "";
+      } else {
+        selectedCategoryIndex = index;
+        inputAmount = value.toString();
+      }
     });
   }
 
   void onNumberPressed(String number) {
+    HapticFeedback.selectionClick();
     setState(() {
+      // If a category was selected, clear it when manual input starts
+      if (selectedCategoryIndex != -1) {
+        selectedCategoryIndex = -1;
+        inputAmount = '';
+      }
       inputAmount += number;
+    });
+  }
+
+  void onDeletePressed() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (inputAmount.isNotEmpty) {
+        inputAmount = inputAmount.substring(0, inputAmount.length - 1);
+      }
     });
   }
 
@@ -33,34 +56,79 @@ class _LogState extends State<Log> {
       final parsedAmount = int.tryParse(inputAmount);
       if (parsedAmount != null && parsedAmount > 0) {
         context.read<Data>().log(parsedAmount);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(' successfully logged '),
-              backgroundColor: Colors.green),
+
+        final user = context.read<Data>().user;
+        final amountDrank =
+            user.Day_Log.values.fold(0, (sum, amount) => sum + amount);
+        final percentage = user.goal > 0 ? (amountDrank / user.goal) * 100 : 0;
+
+        String title;
+        String message;
+
+        if (percentage < 15) {
+          title = "Let’s Get Started 💧";
+          message = "Every drop counts! You're just getting going.";
+        } else if (percentage < 30) {
+          title = "Flowing Nicely 🚰";
+          message = "Good start! Keep the flow going.";
+        } else if (percentage < 45) {
+          title = "Solid Progress 👍";
+          message = "You're building momentum — stay on track!";
+        } else if (percentage < 60) {
+          title = "Halfway There! 🧭";
+          message = "You’ve crossed the halfway mark. Keep going!";
+        } else if (percentage < 75) {
+          title = "Hydration Hero 🦸‍♂️";
+          message = "You're doing great! Don’t slow down now.";
+        } else if (percentage < 90) {
+          title = "Almost There! 🏁";
+          message = "Just a bit more — you're so close!";
+        } else if (percentage < 100) {
+          title = "Final Push 💙";
+          message = "You're nearly at your goal. Keep sipping!";
+        } else {
+          title = "Goal Achieved! 🏆";
+          message = "You crushed your hydration goal today. Amazing job!";
+        }
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/');
+                },
+                child: const Text("Continue"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text("Log Another"),
+              ),
+            ],
+          ),
         );
-        Navigator.pushNamed(context, '/'); // Navigate to GoalPage
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Please enter a valid positive number'),
-              backgroundColor: Colors.red),
+            content: Text('Please enter a valid positive number'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Please enter a goal amount'),
-            backgroundColor: Colors.red),
+          content: Text('Please enter a goal amount'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
-  }
-
-  void onDeletePressed() {
-    setState(() {
-      if (inputAmount.isNotEmpty) {
-        inputAmount = inputAmount.substring(0, inputAmount.length - 1);
-      }
-    });
   }
 
   @override
@@ -68,40 +136,34 @@ class _LogState extends State<Log> {
     final data = context.read<Data>().user;
 
     return Scaffold(
-      backgroundColor: Color(0xFFF4F8FB),
+      backgroundColor: const Color(0xFFF4F8FB),
       body: Column(
         children: [
-          // Top spacing
-          SizedBox(height: 30),
-
-          // Wave background at the top
+          const SizedBox(height: 30),
           _buildWaveBackground(),
-
-          // Main content area
           Expanded(
             child: Container(
-              color: Color(0x8C2596FF),
+              color: const Color(0x8C2596FF),
               child: Column(
                 children: [
-                  // Input display area
+                  // Display area
                   Flexible(
                     flex: 2,
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Display the input amount
                           Text(
-                            inputAmount.isEmpty ? "0" : inputAmount,
-                            style: TextStyle(
+                            inputAmount.isEmpty ? '0' : inputAmount,
+                            style: const TextStyle(
                               fontSize: 48,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            "Unit: ml",
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Unit: ml',
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
@@ -112,7 +174,7 @@ class _LogState extends State<Log> {
                     ),
                   ),
 
-                  // Categories strip
+                  // Category buttons
                   if (data.metric.isNotEmpty)
                     Flexible(
                       flex: 1,
@@ -145,14 +207,14 @@ class _LogState extends State<Log> {
         child: WaveWidget(
           config: CustomConfig(
             colors: [
-              Color(0x4D2596FF), // ~30% opacity for first wave
-              Color(0x4D2596FF), // ~30% opacity for second wave
+              const Color(0x4D2596FF),
+              const Color(0x4D2596FF),
             ],
             durations: [4000, 3200],
             heightPercentages: [0.20, 0.25],
           ),
           waveAmplitude: 15,
-          size: Size(double.infinity, 130),
+          size: const Size(double.infinity, 130),
         ),
       ),
     );
@@ -160,28 +222,45 @@ class _LogState extends State<Log> {
 
   Widget _buildCategoryButtons() {
     final data = context.read<Data>().user;
-    Map categories = data.metric;
+    final categories = data.metric;
     final categoryList = categories.keys.toList();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10.0),
       child: SizedBox(
         height: categoryList.isNotEmpty ? 80 : 0,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: categories.length,
-          itemBuilder: (context, index) {
-            final categoryKey = categoryList[index];
-            final categoryValue = categories[categoryKey];
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: MetricButton(
-                label: categoryList[index],
-                isSelected: index == selectedCategoryIndex,
-                onTap: () => onCategorySelected(index, categoryValue!),
-              ),
-            );
+        child: ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Colors.transparent,
+                Colors.black,
+                Colors.black,
+                Colors.transparent,
+              ],
+              stops: [0.0, 0.1, 0.9, 1.0],
+            ).createShader(bounds);
           },
+          blendMode: BlendMode.dstIn,
+          child: ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length,
+            itemBuilder: (context, index) {
+              final key = categoryList[index];
+              final value = categories[key]!;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: MetricButton(
+                  label: key,
+                  isSelected: index == selectedCategoryIndex,
+                  onTap: () => onCategorySelected(index, value),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

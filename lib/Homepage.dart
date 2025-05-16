@@ -4,7 +4,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:water/logic.dart';
 import 'package:water/widgets/navBar.dart';
 import 'package:water/widgets/inforwidget.dart';
-import 'package:water/widgets/persuadeWidget.dart';
 import 'package:water/widgets/lotprogress.dart';
 import 'package:wave/wave.dart';
 import 'package:wave/config.dart';
@@ -81,12 +80,6 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
           barrierDismissible: false,
           builder: (context) => InfoDialog(),
         );
-      } else {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => PersuadeDialog(),
-        );
       }
     });
   }
@@ -112,7 +105,7 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -470,26 +463,23 @@ class _WeeklyWaterTrackingChartState extends State<WeeklyWaterTrackingChart> {
       (i) => widget.currentDate.subtract(Duration(days: 6 - i)),
     );
 
-    // Ensure maxY is positive and valid
     final maxLogged = widget.log.isNotEmpty
         ? widget.log.reduce((a, b) => a > b ? a : b)
         : widget.goal;
     final baseMaxY = (maxLogged > widget.goal ? maxLogged : widget.goal)
         .clamp(0, double.infinity);
-    final maxY =
-        (baseMaxY == 0 ? 1000 : baseMaxY) * 1.1; // Fallback to 1000ml if zero
+    final maxY = (baseMaxY == 0 ? 1000 : baseMaxY) * 1.1;
 
     final spots = <FlSpot>[];
     final missingIndexes = <int>{};
     for (var i = 0; i < 7; i++) {
       final date = last7Days[i];
       final daysAgo = widget.currentDate.difference(date).inDays;
-      final isMissing = daysAgo < 0 || daysAgo >= widget.log.length;
+      final logIndex = widget.log.length - 1 - daysAgo;
+      final isMissing = logIndex < 0 || logIndex >= widget.log.length;
       if (isMissing) missingIndexes.add(i);
-      final value = isMissing
-          ? 0
-          : widget.log[widget.log.length - 1 - daysAgo]
-              .clamp(0, double.infinity);
+      final value =
+          isMissing ? 0 : widget.log[logIndex].clamp(0, double.infinity);
       spots.add(FlSpot(i.toDouble(), value.toDouble()));
     }
 
@@ -545,14 +535,17 @@ class _WeeklyWaterTrackingChartState extends State<WeeklyWaterTrackingChart> {
                 HorizontalLine(
                   y: widget.goal.toDouble().clamp(0, double.infinity),
                   color: Colors.redAccent,
-                  strokeWidth: 1,
-                  dashArray: [4, 4],
+                  strokeWidth: 2,
+                  dashArray: [6, 4],
                   label: HorizontalLineLabel(
                     show: true,
                     alignment: Alignment.topRight,
-                    style:
-                        const TextStyle(color: Colors.redAccent, fontSize: 10),
-                    labelResolver: (_) => 'Goal ${widget.goal}ml',
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    labelResolver: (_) => 'Goal: ${widget.goal}ml',
                   ),
                 ),
               ],
@@ -566,11 +559,19 @@ class _WeeklyWaterTrackingChartState extends State<WeeklyWaterTrackingChart> {
                     final idx = value.toInt();
                     if (idx >= 0 && idx < last7Days.length) {
                       final wd = last7Days[idx].weekday;
+                      final isToday = last7Days[idx].day ==
+                              widget.currentDate.day &&
+                          last7Days[idx].month == widget.currentDate.month &&
+                          last7Days[idx].year == widget.currentDate.year;
                       return Text(
                         weekdayNames[wd - 1],
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: isToday
+                              ? Colors.blueAccent
+                              : Colors.grey.shade600,
                           fontSize: 10,
+                          fontWeight:
+                              isToday ? FontWeight.bold : FontWeight.normal,
                         ),
                       );
                     }
@@ -593,12 +594,15 @@ class _WeeklyWaterTrackingChartState extends State<WeeklyWaterTrackingChart> {
                 tooltipBgColor: Colors.black87,
                 tooltipRoundedRadius: 8,
                 getTooltipItems: (spots) => spots.map((spot) {
-                  final dayName = weekdayNames[spot.x.toInt()];
+                  final index = spot.x.toInt();
+                  final date = last7Days[index];
+                  final weekday = weekdayNames[date.weekday - 1];
                   return LineTooltipItem(
-                    '$dayName\n${spot.y.toInt()}ml',
+                    '$weekday\n${spot.y.toInt()}ml',
                     const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
+                      fontSize: 12,
                     ),
                   );
                 }).toList(),
@@ -622,9 +626,7 @@ class _WeeklyWaterTrackingChartState extends State<WeeklyWaterTrackingChart> {
                         strokeColor: Colors.grey,
                       );
                     }
-                    return FlDotCirclePainter(
-                      radius: 0,
-                    );
+                    return FlDotCirclePainter(radius: 0);
                   },
                 ),
                 belowBarData: BarAreaData(

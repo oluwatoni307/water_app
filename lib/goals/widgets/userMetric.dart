@@ -19,7 +19,7 @@ class MetricButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         height: 100,
-        width: 100,
+        width: 110,
         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? Colors.transparent : Colors.white,
