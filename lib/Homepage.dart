@@ -591,7 +591,6 @@ class _WeeklyWaterTrackingChartState extends State<WeeklyWaterTrackingChart> {
               handleBuiltInTouches: true,
               touchCallback: (touch, response) {},
               touchTooltipData: LineTouchTooltipData(
-                tooltipBgColor: Colors.black87,
                 tooltipRoundedRadius: 8,
                 getTooltipItems: (spots) => spots.map((spot) {
                   final index = spot.x.toInt();
