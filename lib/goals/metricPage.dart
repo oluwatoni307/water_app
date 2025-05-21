@@ -46,20 +46,33 @@ class _MetricpageState extends State<Metricpage> {
         return;
       }
 
-      Map<String, int> metricMap = {
-        for (var metric in userMetric) metric.title: metric.value,
-      };
+      bool hasValidMetric = false;
 
-      context.read<Data>().setMetrics(metricMap);
+      for (var metric in userMetric) {
+        final parsedAmount = metric.value;
+        if (parsedAmount > 0) {
+          context.read<Data>().log(parsedAmount);
+          hasValidMetric = true;
+        }
+      }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Fruit metrics saved! Stay hydrated 🍉🍍🥭'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (hasValidMetric) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Fruit metrics saved! Stay hydrated 🍉🍍🥭'),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-      Navigator.pushReplacementNamed(context, '/');
+        Navigator.pushReplacementNamed(context, '/');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No valid fruit amounts were entered.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -107,7 +120,7 @@ class _MetricpageState extends State<Metricpage> {
                     ),
                     const Expanded(
                       child: Text(
-                        'Fruit Hydration',
+                        'Water Variants',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,

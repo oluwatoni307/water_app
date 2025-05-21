@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:water/NotificationService.dart';
 import 'package:water/analysis.dart';
+import 'package:water/profile_page.dart';
 
 import 'Homepage.dart';
 import 'goals/logPage.dart';
@@ -64,6 +65,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/splash': (context) => SplashScreen(),
         '/log': (context) => Log(),
+        '/settings': (context) => ProfilePage(),
         '/analysis': (context) => StatsScreen(),
         '/goals': (context) => GoalPage(),
         '/metric': (context) => Metricpage(),

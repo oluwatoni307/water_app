@@ -68,6 +68,7 @@ class BoxTemp extends StatelessWidget {
         builder: (context) => TitleContentCard(
           title: name,
           content: content,
+          onPressed: onPressed, // Pass the callback to TitleContentCard
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:water/NotificationService.dart';
 import 'package:water/model/userData.dart';
 import 'logic.dart'; // contains AuthService & Data
 
@@ -125,6 +126,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
       print("5. Ready to navigate to home screen");
 
       Navigator.pushReplacementNamed(context, '/');
+
+// Delay notification setup until after home screen is built
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await NotificationService().initialize();
+        await NotificationService().scheduleHydrationReminder();
+      });
     } on FirebaseAuthException catch (e) {
       print("Auth error: ${e.code} - ${e.message}");
 
@@ -156,57 +163,60 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext ctx) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ListView(
-          children: [
-            const SizedBox(height: 80),
-            const Text('Create an account',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 30),
-            TextField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(
-                  labelText: 'Full Name', border: OutlineInputBorder()),
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _emailCtrl,
-              decoration: const InputDecoration(
-                  labelText: 'Email', border: OutlineInputBorder()),
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _pwCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                  labelText: 'Password', border: OutlineInputBorder()),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _signUp(),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 10),
-              Text(_error!, style: const TextStyle(color: Colors.red)),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(20),
+          child: ListView(
+            children: [
+              const SizedBox(height: 80),
+              const Text('Create an account',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 30),
+              TextField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(
+                    labelText: 'Full Name', border: OutlineInputBorder()),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _emailCtrl,
+                decoration: const InputDecoration(
+                    labelText: 'Email', border: OutlineInputBorder()),
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _pwCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(
+                    labelText: 'Password', border: OutlineInputBorder()),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _signUp(),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(_error!, style: const TextStyle(color: Colors.red)),
+              ],
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: _loading ? null : _signUp,
+                style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50)),
+                child: _loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Sign Up', style: TextStyle(fontSize: 18)),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Already have an account? Log in'),
+              ),
             ],
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _loading ? null : _signUp,
-              style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50)),
-              child: _loading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Sign Up', style: TextStyle(fontSize: 18)),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Already have an account? Log in'),
-            ),
-          ],
+          ),
         ),
       ),
     );

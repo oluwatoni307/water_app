@@ -66,22 +66,25 @@ class _OnBoardingPageViewState extends State<OnBoardingPageView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageView.builder(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        itemCount: onboardingScreens.length,
-        itemBuilder: (context, index) {
-          final screen = onboardingScreens[index];
-          return OnBoardingScreen(
-            imagePath: screen["image"]!,
-            title: screen["title"]!,
-            description: screen["description"]!,
-            buttonText: screen["buttonText"]!,
-            currentPage: currentPage, // Pass currentPage
-            onButtonPressed: _onButtonPressed,
-          );
-        },
+    return PopScope(
+      canPop: false, // disables back navigation
+      child: Scaffold(
+        body: PageView.builder(
+          controller: _pageController,
+          onPageChanged: _onPageChanged,
+          itemCount: onboardingScreens.length,
+          itemBuilder: (context, index) {
+            final screen = onboardingScreens[index];
+            return OnBoardingScreen(
+              imagePath: screen["image"] ?? '',
+              title: screen["title"] ?? '',
+              description: screen["description"] ?? '',
+              buttonText: screen["buttonText"] ?? 'Next',
+              currentPage: currentPage,
+              onButtonPressed: _onButtonPressed,
+            );
+          },
+        ),
       ),
     );
   }

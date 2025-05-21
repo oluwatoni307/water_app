@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:water/goals/widgets/userMetric.dart';
 import 'package:water/goals/widgets/numberpad.dart';
 import 'package:wave/wave.dart';
 import 'package:wave/config.dart';
@@ -104,12 +103,6 @@ class _LogState extends State<Log> {
                 },
                 child: const Text("Continue"),
               ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text("Log Another"),
-              ),
             ],
           ),
         );
@@ -133,8 +126,6 @@ class _LogState extends State<Log> {
 
   @override
   Widget build(BuildContext context) {
-    final data = context.read<Data>().user;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FB),
       body: Column(
@@ -174,13 +165,6 @@ class _LogState extends State<Log> {
                     ),
                   ),
 
-                  // Category buttons
-                  if (data.metric.isNotEmpty)
-                    Flexible(
-                      flex: 1,
-                      child: _buildCategoryButtons(),
-                    ),
-
                   // Number pad
                   Flexible(
                     flex: 3,
@@ -215,52 +199,6 @@ class _LogState extends State<Log> {
           ),
           waveAmplitude: 15,
           size: const Size(double.infinity, 130),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryButtons() {
-    final data = context.read<Data>().user;
-    final categories = data.metric;
-    final categoryList = categories.keys.toList();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0),
-      child: SizedBox(
-        height: categoryList.isNotEmpty ? 80 : 0,
-        child: ShaderMask(
-          shaderCallback: (Rect bounds) {
-            return const LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Colors.transparent,
-                Colors.black,
-                Colors.black,
-                Colors.transparent,
-              ],
-              stops: [0.0, 0.1, 0.9, 1.0],
-            ).createShader(bounds);
-          },
-          blendMode: BlendMode.dstIn,
-          child: ListView.builder(
-            physics: const BouncingScrollPhysics(),
-            scrollDirection: Axis.horizontal,
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final key = categoryList[index];
-              final value = categories[key]!;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: MetricButton(
-                  label: key,
-                  isSelected: index == selectedCategoryIndex,
-                  onTap: () => onCategorySelected(index, value),
-                ),
-              );
-            },
-          ),
         ),
       ),
     );
