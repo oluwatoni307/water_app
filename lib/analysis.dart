@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:water/logic.dart';
 import 'package:water/widgets/navBar.dart';
+import 'dart:ui';
 
 const List<String> routes = [
   '/',
@@ -316,10 +317,115 @@ class StatsScreen extends StatelessWidget {
                 ),
               ),
             ),
+            buildStyledDayLog(context),
           ],
         ),
       ),
       bottomNavigationBar: navBar(currentIndex: currentIndex),
+    );
+  }
+
+  Widget buildStyledDayLog(BuildContext context) {
+    final data = Provider.of<Data>(context);
+
+    final entries = data.user.Day_Log.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    final totalGoal = data.user.goal.toDouble();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: entries.map((entry) {
+          final time = TimeOfDay(
+            hour: entry.key.inHours,
+            minute: entry.key.inMinutes.remainder(60),
+          ).format(context);
+          final amount = entry.value.toDouble();
+          final percentage = (amount / totalGoal).clamp(0.0, 1.0);
+
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: percentage),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      leading: CircleAvatar(
+                        radius: 24,
+                        backgroundColor:
+                            Theme.of(context).primaryColor.withOpacity(0.2),
+                        child: Icon(
+                          Icons.water_drop,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                      title: Text(
+                        '$amount ml',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                      subtitle: Text(
+                        time,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                      trailing: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: CircularProgressIndicator(
+                              value: value,
+                              strokeWidth: 4,
+                              backgroundColor: Colors.white24,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Theme.of(context).colorScheme.secondary,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${(value * 100).round()}%',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        }).toList(),
+      ),
     );
   }
 }

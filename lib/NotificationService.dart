@@ -5,104 +5,135 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// Global navigator key
+// Global navigator key to handle payload routing
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-/// Service to handle scheduling and delivering notifications
 class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
+
   bool _initialized = false;
 
-  /// Initialize the notification service
+  /// Initializes the notification service
   Future<void> initialize() async {
     if (_initialized) return;
 
     tz_data.initializeTimeZones();
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    try {
-      await _notifications.initialize(
-        initSettings,
-        onDidReceiveNotificationResponse: _onNotificationTapped,
-      );
+    const initSettings = InitializationSettings(
+      android: androidInit,
+    );
 
-      await _requestNotificationPermission();
-      _initialized = true;
+    await _notifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onNotificationTapped,
+    );
 
-      if (kDebugMode) print('Notification service initialized');
-    } catch (e) {
-      if (kDebugMode) print('Initialization failed: $e');
-    }
+    await _requestNotificationPermission();
+
+    _initialized = true;
+
+    if (kDebugMode) print('✅ Notification service initialized');
   }
 
-  /// Request notification permission on Android 13+
+  /// Requests notification permission for Android 13+
   Future<void> _requestNotificationPermission() async {
     final status = await Permission.notification.status;
     if (!status.isGranted) {
       final result = await Permission.notification.request();
-      if (result.isGranted) {
-        if (kDebugMode) print('Notification permission granted');
-      } else {
-        if (kDebugMode) print('Notification permission denied');
+      if (kDebugMode) {
+        print(result.isGranted
+            ? '✅ Notification permission granted'
+            : '❌ Notification permission denied');
       }
     }
   }
 
-  /// Handle notification tap
+  /// Handles notification tap
   void _onNotificationTapped(NotificationResponse response) {
-    if (kDebugMode) print('Notification tapped: ${response.payload}');
+    if (kDebugMode) print('🔔 Notification tapped: ${response.payload}');
     if (response.payload != null && response.payload!.isNotEmpty) {
       navigatorKey.currentState?.pushNamed(response.payload!);
     }
   }
 
-  /// Schedule a simple hydration reminder every 3 hours
+  /// Schedules a hydration notification in 10 seconds (for testing)
   Future<void> scheduleHydrationReminder() async {
     if (!_initialized) await initialize();
 
-    await _notifications.cancel(1); // Cancel previous reminder
+    await _notifications.cancel(1);
+
+    const channel = AndroidNotificationChannel(
+      'hydration_reminders',
+      'Hydration Reminders',
+      description: 'Reminders to drink water throughout the day',
+      importance: Importance.high,
+    );
+
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
 
     final now = tz.TZDateTime.now(tz.local);
-    final nextReminder = now.add(const Duration(hours: 3));
+    final scheduledTime = now.add(const Duration(seconds: 10));
 
     const androidDetails = AndroidNotificationDetails(
       'hydration_reminders',
       'Hydration Reminders',
-      channelDescription: 'Reminders to stay hydrated throughout the day',
+      channelDescription: 'Reminders to drink water throughout the day',
       importance: Importance.high,
       priority: Priority.high,
       styleInformation: BigTextStyleInformation(
-        'Stay refreshed and energized. ✨\nTime to drink some water!',
+        '💧 Time to hydrate!\nStay energized and drink some water.',
       ),
     );
 
     const details = NotificationDetails(android: androidDetails);
 
-    try {
-      await _notifications.zonedSchedule(
-        1, // ID
-        'Hydration Time 💧',
-        'Take a refreshing sip of water!',
-        nextReminder,
-        details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        payload: '/', // Route (optional)
-      );
-      if (kDebugMode) {
-        print('Scheduled hydration reminder for $nextReminder');
-      }
-    } catch (e) {
-      if (kDebugMode) print('Error scheduling hydration reminder: $e');
+    await _notifications.zonedSchedule(
+      1,
+      'Hydration Time 💧',
+      'Take a refreshing sip of water!',
+      scheduledTime,
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      // Deprecated, just remove or leave null
+      payload: '/',
+    );
+
+    if (kDebugMode) {
+      print('🕒 Hydration reminder scheduled for $scheduledTime');
     }
   }
 
-  /// Cancel all scheduled notifications
+  /// Show an instant notification for testing
+  Future<void> showTestNotification() async {
+    if (!_initialized) await initialize();
+
+    const androidDetails = AndroidNotificationDetails(
+      'hydration_reminders',
+      'Hydration Reminders',
+      channelDescription: 'Hydration test notification',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const details = NotificationDetails(android: androidDetails);
+
+    await _notifications.show(
+      100,
+      'Test Notification ✅',
+      'This is a test notification',
+      details,
+    );
+  }
+
+  /// Cancels all scheduled notifications
   Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
-    if (kDebugMode) print('All notifications canceled');
+    if (kDebugMode) print('🔕 All notifications canceled');
   }
 }
