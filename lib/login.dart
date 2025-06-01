@@ -19,6 +19,16 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String? _error;
 
+  /// Initialize notifications asynchronously without blocking user flow
+  void _initializeNotificationsAsync() async {
+    try {
+      await NotificationService().initialize();
+      await NotificationService().scheduleHydrationReminder();
+    } catch (e) {
+      debugPrint('⚠️ Notification setup failed: $e');
+    }
+  }
+
   Future<void> _login() async {
     setState(() {
       _loading = true;
@@ -47,12 +57,9 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(builder: (_) => const WaterTrackScreen()),
       );
+      _initializeNotificationsAsync();
 
 // Post-frame: safe to initialize services
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await NotificationService().initialize();
-        await NotificationService().scheduleHydrationReminder();
-      });
     } on FirebaseAuthException catch (e) {
       _error = e.message;
     } catch (e) {

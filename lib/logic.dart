@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:water/model/userData.dart';
 
 bool _isSignUp = false;
@@ -40,6 +41,7 @@ class Data extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
   late final DocumentReference<Map<String, dynamic>> _docRef;
+  late final Box _localBox;
   Timer? _dailyTimer;
 
   UserData _user = UserData('', 0, {}, {}, {}, {}, '', [], DateTime.now(), []);
@@ -52,41 +54,84 @@ class Data extends ChangeNotifier {
 
   Future<void> initialize() async {
     try {
+      // Initialize Hive box for local storage
+      await Hive.initFlutter();
+      _localBox = await Hive.openBox('userData');
+
       final uid = await _authService.getCurrentUID();
       _docRef = _firestore.collection('users').doc(uid);
 
-      final snapshot = await _docRef.get();
-      if (snapshot.exists && snapshot.data() != null) {
-        _user = UserData.fromJson(snapshot.data()!);
+      // Try to load from local database first
+      final localData = _localBox.get(uid);
+      bool loadedFromLocal = false;
 
-        final today = DateTime.now();
-        final todayDate = DateTime(today.year, today.month, today.day);
-
-        if (_user.Log.isNotEmpty) {
-          final lastLogDate = _user.currentDate;
-          final lastDate =
-              DateTime(lastLogDate.year, lastLogDate.month, lastLogDate.day);
-          if (todayDate.isAfter(lastDate)) {
-            await finishDay();
-            print("updated");
-          }
-        } else if (_user.Day_Log.isNotEmpty) {
-          // Get the first duration timestamp in Day_Log
-          final lastLogDate = _user.currentDate;
-          final lastDate =
-              DateTime(lastLogDate.year, lastLogDate.month, lastLogDate.day);
-          if (todayDate.isAfter(lastDate)) {
-            await finishDay();
-            print("updated");
-          }
+      if (localData != null) {
+        try {
+          _user = UserData.fromJson(Map<String, dynamic>.from(localData));
+          loadedFromLocal = true;
+          if (kDebugMode) print('Loaded user data from local database');
+        } catch (e) {
+          if (kDebugMode) print('Error loading from local DB: $e');
         }
+      }
 
+      // Check date logic for day rollover
+      if (loadedFromLocal) {
+        await _checkAndUpdateDayRollover();
         notifyListeners();
+      }
+
+      // Try to fetch from Firebase (either as primary or backup)
+      try {
+        final snapshot = await _docRef.get();
+        if (snapshot.exists && snapshot.data() != null) {
+          final firebaseUser = UserData.fromJson(snapshot.data()!);
+
+          // If we didn't have local data, use Firebase data
+          if (!loadedFromLocal) {
+            _user = firebaseUser;
+            await _checkAndUpdateDayRollover();
+            // Save to local for next time
+            await _saveToLocal();
+            if (kDebugMode) print('Loaded user data from Firebase');
+          } else {
+            // Optional: Could implement simple comparison/merge logic here
+            // For now, we trust local data and update Firebase silently
+            await _saveToFirebase();
+          }
+
+          notifyListeners();
+        }
+      } catch (e) {
+        if (kDebugMode) print('Firebase fetch error (offline?): $e');
+        // If we have local data, continue with that
+        if (!loadedFromLocal) {
+          // No local data and no Firebase - this is a problem
+          throw Exception(
+              'No data available offline and cannot reach Firebase');
+        }
       }
 
       _scheduleDailySave();
     } catch (e) {
       if (kDebugMode) print('Initialization error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _checkAndUpdateDayRollover() async {
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+
+    if (_user.Log.isNotEmpty || _user.Day_Log.isNotEmpty) {
+      final lastLogDate = _user.currentDate;
+      final lastDate =
+          DateTime(lastLogDate.year, lastLogDate.month, lastLogDate.day);
+
+      if (todayDate.isAfter(lastDate)) {
+        await finishDay();
+        if (kDebugMode) print("Day rollover updated");
+      }
     }
   }
 
@@ -104,16 +149,35 @@ class Data extends ChangeNotifier {
   }
 
   Future<void> _save() async {
+    // Save to local first (fast and reliable)
+    await _saveToLocal();
+
+    // Attempt to save to Firebase (may fail silently if offline)
+    await _saveToFirebase();
+  }
+
+  Future<void> _saveToLocal() async {
+    try {
+      final uid = await _authService.getCurrentUID();
+      await _localBox.put(uid, _user.toJson());
+    } catch (e) {
+      if (kDebugMode) print('Local save error: $e');
+    }
+  }
+
+  Future<void> _saveToFirebase() async {
     try {
       await _docRef.set(_user.toJson());
     } catch (e) {
-      if (kDebugMode) print('Firestore save error: $e');
+      if (kDebugMode) print('Firebase save error (offline?): $e');
+      // Don't rethrow - app should continue working with local data
     }
   }
 
   @override
   void dispose() {
     _dailyTimer?.cancel();
+    _localBox.close();
     super.dispose();
   }
 
@@ -167,7 +231,7 @@ class Data extends ChangeNotifier {
       _user.completed.add(false);
     }
 
-    // Calculate and log today’s intake
+    // Calculate and log today's intake
     final totalIntake = _user.Day_Log.values.fold(0, (sum, a) => sum + a);
     _user.Log.add(totalIntake);
 

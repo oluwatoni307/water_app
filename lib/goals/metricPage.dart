@@ -12,16 +12,6 @@ class Metricpage extends StatefulWidget {
 class _MetricpageState extends State<Metricpage> {
   List<BoxModel> userMetric = [];
 
-  @override
-  void initState() {
-    super.initState();
-    final existingMetrics = context.read<Data>().user.metric;
-    userMetric = fruits
-        .where((fruit) => existingMetrics.containsKey(fruit.title))
-        .map((fruit) => BoxModel(title: fruit.title, value: fruit.value))
-        .toList();
-  }
-
   void _tappedMetrics(String name, int quantity) {
     setState(() {
       bool exists = userMetric.any((metric) => metric.title == name);

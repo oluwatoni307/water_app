@@ -50,6 +50,8 @@ dependencies:
   flutter_local_notifications:
   timezone: 
   permission_handler:
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
 
 
 

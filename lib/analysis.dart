@@ -89,15 +89,13 @@ class DayPie extends StatefulWidget {
 }
 
 class _DayPieState extends State<DayPie> {
-  int? _touchedIndex;
-
   @override
   Widget build(BuildContext context) {
     final filledValue = widget.intake.toDouble().clamp(0.0, double.infinity);
     final emptyValue = (widget.goal - filledValue).clamp(0.0, double.infinity);
 
     return SizedBox(
-      width: 60,
+      width: 80, // Increased width
       child: Column(
         children: [
           Expanded(
@@ -106,49 +104,50 @@ class _DayPieState extends State<DayPie> {
               children: [
                 PieChart(
                   PieChartData(
-                    sectionsSpace: 0,
-                    centerSpaceRadius: 14,
-                    pieTouchData: PieTouchData(
-                      touchCallback: (event, resp) {
-                        if (resp == null || resp.touchedSection == null) {
-                          setState(() => _touchedIndex = null);
-                          return;
-                        }
-                        setState(() => _touchedIndex =
-                            resp.touchedSection!.touchedSectionIndex);
-                      },
-                    ),
+                    sectionsSpace: 1, // Small gap between sections
+                    centerSpaceRadius: 18, // Increased center space
                     sections: [
                       PieChartSectionData(
                         value: filledValue,
-                        color: Colors.blueGrey,
-                        radius: 18,
+                        color: const Color(0xFF369FFF), // App blue color
+                        radius: 22, // Increased radius
                         title: '',
                       ),
                       if (emptyValue > 0)
                         PieChartSectionData(
                           value: emptyValue,
                           color: Colors.grey.shade300,
-                          radius: 18,
+                          radius: 22, // Increased radius
                           title: '',
                         ),
                     ],
                   ),
                 ),
-                if (_touchedIndex != null)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.black87,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '${widget.intake}ml\n${((filledValue / widget.goal) * 100).clamp(0.0, 100.0).round()}%',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
-                    ),
+                // Always show stats in center
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${widget.intake}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF369FFF),
+                        ),
+                      ),
+                      Text(
+                        '${((filledValue / widget.goal) * 100).clamp(0.0, 100.0).round()}%',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
                   ),
+                ),
               ],
             ),
           ),
@@ -169,23 +168,34 @@ class StatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = Provider.of<Data>(context);
-    final log = data.user.Log; // List<int>
+    final completedLog = data.user.Log; // Historical completed days
     final goal = data.user.goal;
 
-    final daysLogged = log.where((v) => v > 0).length;
-    final daysGoalMet = log.where((v) => v >= goal).length;
-    final avgIntake =
-        daysLogged > 0 ? (log.reduce((a, b) => a + b) / daysLogged).round() : 0;
-    final highest = log.isNotEmpty ? log.reduce((a, b) => a > b ? a : b) : 0;
-    final lowest = log.where((v) => v > 0).isNotEmpty
-        ? log.where((v) => v > 0).reduce((a, b) => a < b ? a : b)
+    // Calculate today's intake from ongoing Day_Log
+    final todayIntake = data.user.Day_Log.values.fold(0, (sum, a) => sum + a);
+
+    // Create complete data including today
+    final allDaysData = [...completedLog, todayIntake];
+    final totalDays = allDaysData.length;
+
+    // Statistics including zeros (failed days)
+    final daysLogged = totalDays; // All days including zeros
+    final daysGoalMet = allDaysData.where((v) => v >= goal).length;
+    final avgIntake = totalDays > 0
+        ? (allDaysData.reduce((a, b) => a + b) / totalDays).round()
+        : 0;
+    final highest = allDaysData.isNotEmpty
+        ? allDaysData.reduce((a, b) => a > b ? a : b)
+        : 0;
+    final lowest = allDaysData.isNotEmpty
+        ? allDaysData.reduce((a, b) => a < b ? a : b)
         : 0;
 
     final currentRoute = ModalRoute.of(context)?.settings.name ?? '/';
     final currentIndex = routes.indexOf(currentRoute);
-    final last7 = log.length >= 7
-        ? log.sublist(log.length - 7)
-        : List.filled(7 - log.length, 0) + log;
+
+    // Last 7 days including today
+    final last7 = _getLast7Days(completedLog, todayIntake);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FB),
@@ -202,127 +212,236 @@ class StatsScreen extends StatelessWidget {
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Overview Stat Cards in 2-column grid
-            GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 5,
-              mainAxisSpacing: 5,
-              childAspectRatio: 3 / 1.2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                StatCard(
-                  icon: Icons.calendar_today,
-                  label: 'Days Logged',
-                  value: '$daysLogged',
-                ),
-                StatCard(
-                  icon: Icons.check_circle,
-                  label: 'Days Goal Met',
-                  value: '$daysGoalMet / $daysLogged',
-                ),
-                StatCard(
-                  icon: Icons.water_drop,
-                  label: 'Average Intake',
-                  value: '${avgIntake}ml',
-                ),
-                StatCard(
-                  icon: Icons.trending_up,
-                  label: 'Highest Intake',
-                  value: '${highest}ml',
-                ),
-                StatCard(
-                  icon: Icons.trending_down,
-                  label: 'Lowest Intake',
-                  value: '${lowest}ml',
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+      body: totalDays == 0
+          ? _buildEmptyState()
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Overview Stat Cards in 2-column grid
+                  GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 5,
+                    mainAxisSpacing: 5,
+                    childAspectRatio: 3 / 1.2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      StatCard(
+                        icon: Icons.calendar_today,
+                        label: 'Total Days',
+                        value: '$daysLogged',
+                      ),
+                      StatCard(
+                        icon: Icons.check_circle,
+                        label: 'Days Goal Met',
+                        value: '$daysGoalMet / $daysLogged',
+                      ),
+                      StatCard(
+                        icon: Icons.water_drop,
+                        label: 'Average Intake',
+                        value: '${avgIntake}ml',
+                      ),
+                      StatCard(
+                        icon: Icons.trending_up,
+                        label: 'Highest Intake',
+                        value: '${highest}ml',
+                      ),
+                      StatCard(
+                        icon: Icons.trending_down,
+                        label: 'Lowest Intake',
+                        value: '${lowest}ml',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
 
-            // Mini pies row (weekly)
-            Text(
-              'Last 7 Days',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: 7,
-                itemBuilder: (context, idx) {
-                  final date = DateTime.now().subtract(Duration(days: 6 - idx));
-                  final weekday = [
-                    'Mon',
-                    'Tue',
-                    'Wed',
-                    'Thu',
-                    'Fri',
-                    'Sat',
-                    'Sun'
-                  ][date.weekday - 1];
-                  final intake = last7[idx];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: DayPie(intake: intake, goal: goal, label: weekday),
-                  );
-                },
-              ),
-            ),
-
-            // 30-day sparkline
-            Text(
-              'Last 30 Days Trend',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 155,
-              child: LineChart(
-                LineChartData(
-                  minY: 0,
-                  maxY: (log.isEmpty
-                          ? 100
-                          : log.reduce((a, b) => a > b ? a : b).toDouble()) *
-                      1.2,
-                  gridData: FlGridData(show: false),
-                  titlesData: FlTitlesData(show: false),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: List.generate(30, (i) {
-                        final val = i < log.length ? log[i] : 0;
-                        return FlSpot(i.toDouble(), val.toDouble());
-                      }),
-                      isCurved: true,
-                      barWidth: 3,
-                      isStrokeCapRound: true,
-                      dotData: FlDotData(show: false),
+                  // Today's Progress
+                  Text(
+                    'Today\'s Progress',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${todayIntake}ml / ${goal}ml',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  '${goal > 0 ? ((todayIntake / goal) * 100).round() : 0}% of daily goal',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          ),
+                          CircularProgressIndicator(
+                            value: goal > 0
+                                ? (todayIntake / goal).clamp(0.0, 1.0)
+                                : 0,
+                            backgroundColor: Colors.grey[300],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Mini pies row (weekly)
+                  Text(
+                    'Last 7 Days',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 100,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 7,
+                      itemBuilder: (context, idx) {
+                        final date =
+                            DateTime.now().subtract(Duration(days: 6 - idx));
+                        final weekday = [
+                          'Mon',
+                          'Tue',
+                          'Wed',
+                          'Thu',
+                          'Fri',
+                          'Sat',
+                          'Sun'
+                        ][date.weekday - 1];
+                        final intake = last7[idx];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: DayPie(
+                              intake: intake, goal: goal, label: weekday),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 30-day sparkline
+                  Text(
+                    'Last 30 Days Trend',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 155,
+                    child: LineChart(
+                      LineChartData(
+                        minY: 0,
+                        maxY: (highest.toDouble()) * 1.2,
+                        gridData: FlGridData(show: false),
+                        titlesData: FlTitlesData(show: false),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: _getLast30DaysSpots(allDaysData),
+                            isCurved: true,
+                            barWidth: 3,
+                            isStrokeCapRound: true,
+                            dotData: FlDotData(show: false),
+                            color: const Color(0xFF369FFF), // App's blue color
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Today's log entries
+                  if (data.user.Day_Log.isNotEmpty) ...[
+                    Text(
+                      'Today\'s Log Entries',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    buildStyledDayLog(context),
                   ],
-                ),
+                ],
               ),
             ),
-            buildStyledDayLog(context),
-          ],
-        ),
-      ),
       bottomNavigationBar: navBar(currentIndex: currentIndex),
     );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.water_drop_outlined,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No data yet',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Start logging your water intake to see statistics',
+            style: TextStyle(
+              color: Colors.grey[500],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<int> _getLast7Days(List<int> completedLog, int todayIntake) {
+    if (completedLog.length >= 6) {
+      return [...completedLog.sublist(completedLog.length - 6), todayIntake];
+    } else {
+      // Fill missing days with zeros
+      final missingDays = 6 - completedLog.length;
+      return [...List.filled(missingDays, 0), ...completedLog, todayIntake];
+    }
+  }
+
+  List<FlSpot> _getLast30DaysSpots(List<int> allDaysData) {
+    return List.generate(30, (i) {
+      final dataIndex = allDaysData.length - 30 + i;
+      final val = dataIndex >= 0 ? allDaysData[dataIndex] : 0;
+      return FlSpot(i.toDouble(), val.toDouble());
+    });
   }
 
   Widget buildStyledDayLog(BuildContext context) {
@@ -331,92 +450,77 @@ class StatsScreen extends StatelessWidget {
     final entries = data.user.Day_Log.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
 
-    final totalGoal = data.user.goal.toDouble();
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: entries.map((entry) {
-          final time = TimeOfDay(
-            hour: entry.key.inHours,
-            minute: entry.key.inMinutes.remainder(60),
-          ).format(context);
+          // Fix time calculation to handle 24+ hours
+          final totalMinutes = entry.key.inMinutes;
+          final hours = (totalMinutes ~/ 60) % 24;
+          final minutes = totalMinutes % 60;
+
+          final time = TimeOfDay(hour: hours, minute: minutes).format(context);
           final amount = entry.value.toDouble();
-          final percentage = (amount / totalGoal).clamp(0.0, 1.0);
 
           return TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: percentage),
+            tween: Tween(begin: 0, end: 1),
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeOutCubic,
             builder: (context, value, child) {
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                elevation: 3,
+                color: Colors.grey[50], // Slightly darker background
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      leading: CircleAvatar(
-                        radius: 24,
-                        backgroundColor:
-                            Theme.of(context).primaryColor.withOpacity(0.2),
-                        child: Icon(
-                          Icons.water_drop,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                      title: Text(
-                        '$amount ml',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.white,
-                        ),
-                      ),
-                      subtitle: Text(
-                        time,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                      trailing: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          SizedBox(
-                            width: 36,
-                            height: 36,
-                            child: CircularProgressIndicator(
-                              value: value,
-                              strokeWidth: 4,
-                              backgroundColor: Colors.white24,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Theme.of(context).colorScheme.secondary,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '${(value * 100).round()}%',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
+                child: ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  leading: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Color(0xFF369FFF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.water_drop,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  title: Text(
+                    '${amount.toInt()}ml',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                      color: Colors.black87,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  subtitle: Text(
+                    time,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  trailing: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF369FFF).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${amount.toInt()}ml',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF369FFF),
                       ),
                     ),
                   ),

@@ -138,7 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
                             // Navigate to goal editing page
-                            // Navigator.of(context).pushNamed('/edit-goal');
+                            Navigator.of(context).pushNamed('/goals');
                           },
                         ),
                         const Divider(height: 1),

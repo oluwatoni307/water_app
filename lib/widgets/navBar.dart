@@ -42,8 +42,8 @@ class navBar extends StatelessWidget {
           label: "Goal",
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.tune, color: Colors.blueGrey),
-          label: "Metrics",
+          icon: Icon(Icons.apple, color: Colors.blueGrey),
+          label: "Variants",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person, color: Colors.blueGrey),

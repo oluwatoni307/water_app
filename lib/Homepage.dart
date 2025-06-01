@@ -376,21 +376,16 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 15),
-                Text(
-                  "Statistics",
-                  style: GoogleFonts.poppins(
-                      fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                const SizedBox(height: 5),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: WeeklyWaterTrackingChart(
-                      log: userData.Log,
-                      currentDate: userData.currentDate,
-                      goal: userData.goal,
-                    ),
-                  ),
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: WeeklyWaterTrackingChart(
+                        completedLog: data.user.Log, // Historical data
+                        todayIntake: amountDrank, // Current day total
+                        currentDate: DateTime.now(),
+                        goal: data.user.goal,
+                      )),
                 ),
               ],
             ),
@@ -434,14 +429,16 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
 }
 
 class WeeklyWaterTrackingChart extends StatefulWidget {
-  final List<int> log;
+  final List<int> completedLog;
+  final int todayIntake;
   final DateTime currentDate;
   final int goal;
   final void Function(int startIndex, int endIndex)? onRangeSelected;
 
   const WeeklyWaterTrackingChart({
     super.key,
-    required this.log,
+    required this.completedLog,
+    required this.todayIntake,
     required this.currentDate,
     required this.goal,
     this.onRangeSelected,
@@ -453,196 +450,374 @@ class WeeklyWaterTrackingChart extends StatefulWidget {
 }
 
 class _WeeklyWaterTrackingChartState extends State<WeeklyWaterTrackingChart> {
-  int? _dragStart;
-  int? _dragEnd;
+  List<int> _getLast7Days(List<int> completedLog, int todayIntake) {
+    if (completedLog.length >= 6) {
+      return [...completedLog.sublist(completedLog.length - 6), todayIntake];
+    } else {
+      final missingDays = 6 - completedLog.length;
+      return [...List.filled(missingDays, 0), ...completedLog, todayIntake];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final last7DaysData =
+        _getLast7Days(widget.completedLog, widget.todayIntake);
+
     final last7Days = List.generate(
       7,
       (i) => widget.currentDate.subtract(Duration(days: 6 - i)),
     );
 
-    final maxLogged = widget.log.isNotEmpty
-        ? widget.log.reduce((a, b) => a > b ? a : b)
+    final maxLogged = last7DaysData.isNotEmpty
+        ? last7DaysData.reduce((a, b) => a > b ? a : b)
         : widget.goal;
     final baseMaxY = (maxLogged > widget.goal ? maxLogged : widget.goal)
         .clamp(0, double.infinity);
-    final maxY = (baseMaxY == 0 ? 1000 : baseMaxY) * 1.1;
+    final maxY = (baseMaxY == 0 ? 1000 : baseMaxY) * 1.15;
 
     final spots = <FlSpot>[];
     final missingIndexes = <int>{};
+
     for (var i = 0; i < 7; i++) {
-      final date = last7Days[i];
-      final daysAgo = widget.currentDate.difference(date).inDays;
-      final logIndex = widget.log.length - 1 - daysAgo;
-      final isMissing = logIndex < 0 || logIndex >= widget.log.length;
-      if (isMissing) missingIndexes.add(i);
-      final value =
-          isMissing ? 0 : widget.log[logIndex].clamp(0, double.infinity);
+      final value = last7DaysData[i];
+      if (value == 0) {
+        missingIndexes.add(i);
+      }
       spots.add(FlSpot(i.toDouble(), value.toDouble()));
     }
 
     const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final completedDays = last7DaysData.where((d) => d >= widget.goal).length;
 
-    return GestureDetector(
-      onLongPressStart: (details) => setState(() => _dragStart = null),
-      onLongPressMoveUpdate: (details) {},
-      onLongPressEnd: (details) {
-        if (_dragStart != null &&
-            _dragEnd != null &&
-            widget.onRangeSelected != null) {
-          final start = _dragStart!.clamp(0, 6);
-          final end = _dragEnd!.clamp(0, 6);
-          widget.onRangeSelected!(start, end);
-        }
-        setState(() {
-          _dragStart = _dragEnd = null;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            const Color(0xFFFAFBFF),
+            Colors.grey.shade50,
           ],
+          stops: const [0.0, 0.6, 1.0],
         ),
-        child: LineChart(
-          LineChartData(
-            minX: 0,
-            maxX: 6,
-            minY: 0,
-            maxY: maxY,
-            gridData: FlGridData(
-              show: true,
-              drawHorizontalLine: true,
-              horizontalInterval: maxY / 5,
-              getDrawingHorizontalLine: (_) => FlLine(
-                color: Colors.grey.withOpacity(0.2),
-                strokeWidth: 1,
-                dashArray: [5, 5],
-              ),
-              drawVerticalLine: false,
-            ),
-            extraLinesData: ExtraLinesData(
-              horizontalLines: [
-                HorizontalLine(
-                  y: widget.goal.toDouble().clamp(0, double.infinity),
-                  color: Colors.redAccent,
-                  strokeWidth: 2,
-                  dashArray: [6, 4],
-                  label: HorizontalLineLabel(
-                    show: true,
-                    alignment: Alignment.topRight,
-                    style: const TextStyle(
-                      color: Colors.redAccent,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4A90E2).withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFF4A90E2).withOpacity(0.08),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          // Enhanced Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Weekly Progress',
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1A1D29),
+                      letterSpacing: -0.5,
                     ),
-                    labelResolver: (_) => 'Goal: ${widget.goal}ml',
                   ),
-                ),
-              ],
-            ),
-            titlesData: FlTitlesData(
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 22,
-                  getTitlesWidget: (value, _) {
-                    final idx = value.toInt();
-                    if (idx >= 0 && idx < last7Days.length) {
-                      final wd = last7Days[idx].weekday;
-                      final isToday = last7Days[idx].day ==
-                              widget.currentDate.day &&
-                          last7Days[idx].month == widget.currentDate.month &&
-                          last7Days[idx].year == widget.currentDate.year;
-                      return Text(
-                        weekdayNames[wd - 1],
-                        style: TextStyle(
-                          color: isToday
-                              ? Colors.blueAccent
-                              : Colors.grey.shade600,
-                          fontSize: 10,
-                          fontWeight:
-                              isToday ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      );
-                    }
-                    return const Text('');
-                  },
-                ),
-              ),
-              leftTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            ),
-            borderData: FlBorderData(show: false),
-            lineTouchData: LineTouchData(
-              handleBuiltInTouches: true,
-              touchCallback: (touch, response) {},
-              touchTooltipData: LineTouchTooltipData(
-                tooltipRoundedRadius: 8,
-                getTooltipItems: (spots) => spots.map((spot) {
-                  final index = spot.x.toInt();
-                  final date = last7Days[index];
-                  final weekday = weekdayNames[date.weekday - 1];
-                  return LineTooltipItem(
-                    '$weekday\n${spot.y.toInt()}ml',
-                    const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 2),
+                  Text(
+                    'Keep up the great work! 💪',
+                    style: GoogleFonts.inter(
                       fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade600,
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: spots,
-                isCurved: true,
-                color: Colors.blue.shade400,
-                barWidth: 3,
-                isStrokeCapRound: true,
-                dotData: FlDotData(
-                  show: true,
-                  getDotPainter: (spot, percent, bar, index) {
-                    if (missingIndexes.contains(index)) {
-                      return FlDotCirclePainter(
-                        radius: 4,
-                        strokeWidth: 2,
-                        color: Colors.grey,
-                        strokeColor: Colors.grey,
-                      );
-                    }
-                    return FlDotCirclePainter(radius: 0);
-                  },
-                ),
-                belowBarData: BarAreaData(
-                  show: true,
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.blue.withOpacity(0.2),
-                      Colors.blue.withOpacity(0.02),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
                   ),
+                ],
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: completedDays >= 5
+                        ? [const Color(0xFF4CAF50), const Color(0xFF45A049)]
+                        : completedDays >= 3
+                            ? [const Color(0xFF4A90E2), const Color(0xFF357ABD)]
+                            : [
+                                const Color(0xFFFF9800),
+                                const Color(0xFFF57C00)
+                              ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (completedDays >= 5
+                              ? const Color(0xFF4CAF50)
+                              : completedDays >= 3
+                                  ? const Color(0xFF4A90E2)
+                                  : const Color(0xFFFF9800))
+                          .withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      completedDays >= 5 ? Icons.star : Icons.trending_up,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$completedDays/7 days',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 13),
+
+          // Enhanced Chart Area
+          Expanded(
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: 6,
+                minY: 0,
+                maxY: maxY,
+                gridData: FlGridData(
+                  show: true,
+                  drawHorizontalLine: true,
+                  horizontalInterval: maxY / 5,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: const Color(0xFF4A90E2).withOpacity(0.06),
+                    strokeWidth: 1,
+                    dashArray: [6, 6],
+                  ),
+                  drawVerticalLine: true,
+                  verticalInterval: 1,
+                  getDrawingVerticalLine: (_) => FlLine(
+                    color: const Color(0xFF4A90E2).withOpacity(0.04),
+                    strokeWidth: 1,
+                  ),
+                ),
+                extraLinesData: ExtraLinesData(
+                  horizontalLines: [
+                    HorizontalLine(
+                      y: widget.goal.toDouble().clamp(0, double.infinity),
+                      color: const Color(0xFF4CAF50),
+                      strokeWidth: 2,
+                      dashArray: [10, 6],
+                      label: HorizontalLineLabel(
+                        show: true,
+                        alignment: Alignment.topRight,
+                        padding: const EdgeInsets.only(right: 8, top: 2),
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF4CAF50),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          backgroundColor: Colors.white,
+                        ),
+                        labelResolver: (_) => '🎯 Goal ${widget.goal}ml',
+                      ),
+                    ),
+                  ],
+                ),
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 36,
+                      getTitlesWidget: (value, _) {
+                        final idx = value.toInt();
+                        if (idx >= 0 && idx < last7Days.length) {
+                          final wd = last7Days[idx].weekday;
+                          final isToday = last7Days[idx].day ==
+                                  widget.currentDate.day &&
+                              last7Days[idx].month ==
+                                  widget.currentDate.month &&
+                              last7Days[idx].year == widget.currentDate.year;
+
+                          return Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 6),
+                            decoration: isToday
+                                ? BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF4A90E2),
+                                        Color(0xFF357ABD)
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF4A90E2)
+                                            .withOpacity(0.4),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  )
+                                : null,
+                            child: Text(
+                              weekdayNames[wd - 1],
+                              style: GoogleFonts.inter(
+                                color: isToday
+                                    ? Colors.white
+                                    : Colors.grey.shade600,
+                                fontSize: 11,
+                                fontWeight:
+                                    isToday ? FontWeight.w700 : FontWeight.w500,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                ),
+                borderData: FlBorderData(show: false),
+                lineTouchData: LineTouchData(
+                  handleBuiltInTouches: true,
+                  touchCallback: (touch, response) {},
+                  touchTooltipData: LineTouchTooltipData(
+                    tooltipBgColor: const Color(0xFF1A1D29),
+                    tooltipRoundedRadius: 16,
+                    tooltipPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    tooltipMargin: 12,
+                    tooltipBorder: BorderSide(
+                      color: const Color(0xFF4A90E2).withOpacity(0.2),
+                      width: 1,
+                    ),
+                    getTooltipItems: (spots) => spots.map((spot) {
+                      final index = spot.x.toInt();
+                      final date = last7Days[index];
+                      final weekday = weekdayNames[date.weekday - 1];
+                      final isToday = date.day == widget.currentDate.day &&
+                          date.month == widget.currentDate.month &&
+                          date.year == widget.currentDate.year;
+                      final percentage = ((spot.y / widget.goal) * 100).round();
+
+                      return LineTooltipItem(
+                        '${isToday ? '💧 Today' : '📅 $weekday'}\n${spot.y.toInt()}ml ($percentage%)',
+                        GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    curveSmoothness: 0.35,
+                    preventCurveOverShooting: true,
+                    color: const Color(0xFF4A90E2),
+                    barWidth: 3.5,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, bar, index) {
+                        final isToday = index == 6;
+                        final value = spot.y.toInt();
+                        final reachedGoal = value >= widget.goal;
+
+                        if (missingIndexes.contains(index)) {
+                          return FlDotCirclePainter(
+                            radius: 6,
+                            strokeWidth: 2,
+                            color: Colors.grey.shade200,
+                            strokeColor: Colors.grey.shade400,
+                          );
+                        }
+
+                        if (isToday) {
+                          return FlDotCirclePainter(
+                            radius: 9,
+                            strokeWidth: 4,
+                            color: reachedGoal
+                                ? const Color(0xFF4CAF50)
+                                : const Color(0xFF4A90E2),
+                            strokeColor: Colors.white,
+                          );
+                        }
+
+                        return FlDotCirclePainter(
+                          radius: reachedGoal ? 7 : 5,
+                          color: reachedGoal
+                              ? const Color(0xFF4CAF50)
+                              : const Color(0xFF4A90E2),
+                          strokeWidth: 3,
+                          strokeColor: Colors.white,
+                        );
+                      },
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF4A90E2).withOpacity(0.2),
+                          const Color(0xFF4A90E2).withOpacity(0.08),
+                          const Color(0xFF4A90E2).withOpacity(0.02),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.0, 0.7, 1.0],
+                      ),
+                    ),
+                    shadow: Shadow(
+                      color: const Color(0xFF4A90E2).withOpacity(0.15),
+                      offset: const Offset(0, 3),
+                      blurRadius: 6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

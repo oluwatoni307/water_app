@@ -12,9 +12,11 @@ class GoalPage extends StatefulWidget {
   State<GoalPage> createState() => _GoalPageState();
 }
 
-class _GoalPageState extends State<GoalPage> {
+class _GoalPageState extends State<GoalPage> with TickerProviderStateMixin {
   late TextEditingController _controller;
+  late AnimationController _caretController;
   String inputAmount = "";
+  bool _showCaret = false;
 
   @override
   void initState() {
@@ -22,11 +24,22 @@ class _GoalPageState extends State<GoalPage> {
     final goal = context.read<Data>().user.goal;
     inputAmount = goal.toString();
     _controller = TextEditingController(text: inputAmount);
+
+    // Initialize caret animation controller
+    _caretController = AnimationController(
+      duration: Duration(milliseconds: 500),
+      vsync: this,
+    );
+    if (!_showCaret) {
+      _showCaret = true;
+      _caretController.repeat(reverse: true); // Start blinking animation
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _caretController.dispose();
     super.dispose();
   }
 
@@ -66,6 +79,12 @@ class _GoalPageState extends State<GoalPage> {
     setState(() {
       inputAmount += number;
       _controller.text = inputAmount; // Sync controller with input
+
+      // Start caret blinking when user first starts typing
+      if (!_showCaret) {
+        _showCaret = true;
+        _caretController.repeat(reverse: true); // Start blinking animation
+      }
     });
   }
 
@@ -74,6 +93,12 @@ class _GoalPageState extends State<GoalPage> {
       if (inputAmount.isNotEmpty) {
         inputAmount = inputAmount.substring(0, inputAmount.length - 1);
         _controller.text = inputAmount;
+
+        // Stop caret if no more input
+        if (inputAmount.isEmpty) {
+          _showCaret = false;
+          _caretController.stop();
+        }
       }
     });
   }
@@ -91,6 +116,12 @@ class _GoalPageState extends State<GoalPage> {
             setState(() {
               inputAmount = value; // Update inputAmount with selected goal
               _controller.text = inputAmount;
+
+              // Start caret blinking when template is selected
+              if (!_showCaret && inputAmount.isNotEmpty) {
+                _showCaret = true;
+                _caretController.repeat(reverse: true);
+              }
             });
             Navigator.pop(context); // Close the bottom sheet
           },
@@ -144,26 +175,39 @@ class _GoalPageState extends State<GoalPage> {
               children: [
                 const SizedBox(height: 20),
                 Center(
-                  child: TextField(
-                    controller: _controller,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Enter your goal (ml)',
-                      hintStyle: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 24,
-                      ),
-                    ),
-
-                    readOnly:
-                        true, // Prevent manual typing, use number pad or templates
+                  child: AnimatedBuilder(
+                    animation: _caretController,
+                    builder: (context, child) {
+                      return RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: inputAmount.isEmpty
+                                  ? 'Enter your goal (ml)'
+                                  : inputAmount,
+                              style: TextStyle(
+                                fontSize: inputAmount.isEmpty ? 24 : 48,
+                                fontWeight: FontWeight.bold,
+                                color: inputAmount.isEmpty
+                                    ? Colors.grey
+                                    : Colors.white,
+                              ),
+                            ),
+                            if (_showCaret)
+                              TextSpan(
+                                text: '|',
+                                style: TextStyle(
+                                  fontSize: 44,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white
+                                      .withOpacity(_caretController.value),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
