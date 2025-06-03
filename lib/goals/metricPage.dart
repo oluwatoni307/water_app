@@ -77,115 +77,123 @@ class _MetricpageState extends State<Metricpage> {
   Widget build(BuildContext context) {
     const EdgeInsets pagePadding = EdgeInsets.symmetric(horizontal: 16.0);
 
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      body: SafeArea(
-        child: Container(
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 10,
-                offset: Offset(0, -2),
+    return PopScope(
+      canPop: false, // Prevent default back behavior
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          Navigator.of(context).pushReplacementNamed('/home');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[200],
+        body: SafeArea(
+          child: Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
               ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.black),
-                      onPressed: () {
-                        Navigator.pop(context);
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'Water Variants',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+                const Padding(
+                  padding: pagePadding,
+                  child: Text(
+                    'Choose the fruits you enjoy most! They help track your hydration. Long-press any fruit to discover its benefits.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: Padding(
+                    padding: pagePadding,
+                    child: GridView.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 1.5,
+                      ),
+                      itemCount: fruits.length,
+                      itemBuilder: (context, index) {
+                        final fruit = fruits[index];
+                        final isSelected =
+                            userMetric.any((m) => m.title == fruit.title);
+                        return GestureDetector(
+                          child: BoxTemp(
+                            title: fruit.title,
+                            value: fruit.value,
+                            icon: fruit.icon,
+                            onPressed: () =>
+                                _tappedMetrics(fruit.title, fruit.value),
+                            tapped: isSelected,
+                          ),
+                        );
                       },
                     ),
-                    const Expanded(
-                      child: Text(
-                        'Water Variants',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                        textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: saveMetric,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-              ),
-              const Padding(
-                padding: pagePadding,
-                child: Text(
-                  'Choose the fruits you enjoy most! They help track your hydration. Long-press any fruit to discover its benefits.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: Padding(
-                  padding: pagePadding,
-                  child: GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 1.5,
-                    ),
-                    itemCount: fruits.length,
-                    itemBuilder: (context, index) {
-                      final fruit = fruits[index];
-                      final isSelected =
-                          userMetric.any((m) => m.title == fruit.title);
-                      return GestureDetector(
-                        child: BoxTemp(
-                          title: fruit.title,
-                          value: fruit.value,
-                          icon: fruit.icon,
-                          onPressed: () =>
-                              _tappedMetrics(fruit.title, fruit.value),
-                          tapped: isSelected,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Center(
-                child: ElevatedButton(
-                  onPressed: saveMetric,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    child: const Text(
+                      'Finish',
+                      style: TextStyle(fontSize: 16),
                     ),
                   ),
-                  child: const Text(
-                    'Finish',
-                    style: TextStyle(fontSize: 16),
-                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-            ],
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),
