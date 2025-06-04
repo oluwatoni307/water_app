@@ -1,5 +1,5 @@
 Map<String, String> template = {
-  "RainY Season": Rainy,
+  "Rainy Season": Rainy,
   "Dry Season": Sunny,
   "Harmattan": Hamatan,
 

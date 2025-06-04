@@ -14,6 +14,385 @@ const List<String> routes = [
   '/settings'
 ];
 
+// Replace the existing 30-day trend section with this improved version
+
+// 30-day trend chart with improved design
+Widget build30DayTrendChart(List<int> allDaysData, int goal, int highest) {
+  return TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0, end: 1),
+    duration: const Duration(milliseconds: 800),
+    curve: Curves.easeOutCubic,
+    builder: (context, animationValue, child) {
+      return Transform.scale(
+        scale: 0.95 + (0.05 * animationValue),
+        child: Opacity(
+          opacity: animationValue,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            child: Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Last 30 Days Trend',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Your hydration journey',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF369FFF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.show_chart,
+                                size: 14,
+                                color: const Color(0xFF369FFF),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '30D',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF369FFF),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Chart
+                    SizedBox(
+                      height: 200,
+                      child: LineChart(
+                        LineChartData(
+                          minY: 0,
+                          maxY: highest > 0
+                              ? (highest.toDouble()) * 1.2
+                              : 2000, // Default max if no data
+
+                          // Grid styling
+                          gridData: FlGridData(
+                            show: true,
+                            drawVerticalLine: false,
+                            horizontalInterval: highest > 0
+                                ? (highest * 1.2) / 4
+                                : 500, // Default to 500ml intervals if no data
+                            getDrawingHorizontalLine: (value) {
+                              return FlLine(
+                                color: Colors.grey.shade200,
+                                strokeWidth: 1,
+                              );
+                            },
+                          ),
+
+                          // Titles/Axis
+                          titlesData: FlTitlesData(
+                            show: true,
+                            rightTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            topTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 30,
+                                interval: 5,
+                                getTitlesWidget:
+                                    (double value, TitleMeta meta) {
+                                  // Show every 5th day: 1, 5, 10, 15, 20, 25, 30
+                                  if (value == 0 ||
+                                      value % 5 == 0 ||
+                                      value == 29) {
+                                    return SideTitleWidget(
+                                      axisSide: meta.axisSide,
+                                      child: Text(
+                                        '${(value + 1).toInt()}',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox();
+                                },
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 45,
+                                interval: highest > 0
+                                    ? (highest * 1.2) / 4
+                                    : 500, // Default to 500ml intervals if no data
+                                getTitlesWidget:
+                                    (double value, TitleMeta meta) {
+                                  return SideTitleWidget(
+                                    axisSide: meta.axisSide,
+                                    child: Text(
+                                      '${value.toInt()}ml',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+
+                          // Border
+                          borderData: FlBorderData(
+                            show: true,
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                              left: BorderSide(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+
+                          // Goal line (horizontal reference)
+                          extraLinesData: ExtraLinesData(
+                            horizontalLines: [
+                              HorizontalLine(
+                                y: goal.toDouble(),
+                                color: const Color(0xFF369FFF).withOpacity(0.4),
+                                strokeWidth: 2,
+                                dashArray: [5, 5],
+                                label: HorizontalLineLabel(
+                                  show: true,
+                                  alignment: Alignment.topRight,
+                                  style: TextStyle(
+                                    color: const Color(0xFF369FFF),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  labelResolver: (line) => 'Goal',
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // Line data
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: _getLast30DaysSpots(allDaysData),
+                              isCurved: true,
+                              curveSmoothness: 0.3,
+                              barWidth: 3,
+                              isStrokeCapRound: true,
+                              color: const Color(0xFF369FFF),
+
+                              // Gradient fill under the line
+                              belowBarData: BarAreaData(
+                                show: true,
+                                gradient: LinearGradient(
+                                  colors: [
+                                    const Color(0xFF369FFF).withOpacity(0.3),
+                                    const Color(0xFF369FFF).withOpacity(0.05),
+                                  ],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                              ),
+
+                              // Data points (only show for values > 0)
+                              dotData: FlDotData(
+                                show: true,
+                                checkToShowDot: (spot, barData) {
+                                  return (spot.y) >
+                                      0; // Zero-safe: only show dots for positive values
+                                },
+                                getDotPainter: (spot, percent, barData, index) {
+                                  return FlDotCirclePainter(
+                                    radius: 3,
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                    strokeColor: const Color(0xFF369FFF),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+
+                          // Touch interaction
+                          lineTouchData: LineTouchData(
+                            enabled: true,
+                            touchTooltipData: LineTouchTooltipData(
+                              tooltipBgColor: Colors.black87,
+                              tooltipRoundedRadius: 8,
+                              tooltipPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              getTooltipItems:
+                                  (List<LineBarSpot> touchedBarSpots) {
+                                return touchedBarSpots.map((barSpot) {
+                                  final dayNumber = (barSpot.x + 1).toInt();
+                                  final intake = barSpot.y.toInt();
+                                  return LineTooltipItem(
+                                    'Day $dayNumber\n$intake ml',
+                                    const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  );
+                                }).toList();
+                              },
+                            ),
+                            handleBuiltInTouches: true,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Chart legend/info
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildLegendItem(
+                          color: const Color(0xFF369FFF),
+                          label: 'Daily Intake',
+                        ),
+                        const SizedBox(width: 20),
+                        _buildLegendItem(
+                          color: const Color(0xFF369FFF).withOpacity(0.4),
+                          label: 'Goal Line',
+                          isDashed: true,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+Widget _buildLegendItem({
+  required Color color,
+  required String label,
+  bool isDashed = false,
+}) {
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 16,
+        height: 3,
+        decoration: BoxDecoration(
+          color: isDashed ? Colors.transparent : color,
+          borderRadius: BorderRadius.circular(2),
+        ),
+        child: isDashed
+            ? CustomPaint(
+                painter: DashedLinePainter(color: color),
+              )
+            : null,
+      ),
+      const SizedBox(width: 6),
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          color: Colors.grey[600],
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ],
+  );
+}
+
+// Custom painter for dashed line in legend
+class DashedLinePainter extends CustomPainter {
+  final Color color;
+
+  DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2;
+
+    const dashWidth = 3.0;
+    const dashSpace = 2.0;
+    double startX = 0;
+
+    while (startX < size.width) {
+      canvas.drawLine(
+        Offset(startX, size.height / 2),
+        Offset(startX + dashWidth, size.height / 2),
+        paint,
+      );
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// Keep the existing _getLast30DaysSpots method from your original code
+List<FlSpot> _getLast30DaysSpots(List<int> allDaysData) {
+  return List.generate(30, (i) {
+    final dataIndex = allDaysData.length - 30 + i;
+    final val = dataIndex >= 0 ? allDaysData[dataIndex] : 0;
+    return FlSpot(i.toDouble(), val.toDouble());
+  });
+}
+
 /// Reusable statistic card for overview metrics
 class StatCard extends StatelessWidget {
   final IconData icon;
@@ -341,37 +720,12 @@ class StatsScreen extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   // 30-day sparkline
-                  Text(
-                    'Last 30 Days Trend',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 155,
-                    child: LineChart(
-                      LineChartData(
-                        minY: 0,
-                        maxY: (highest.toDouble()) * 1.2,
-                        gridData: FlGridData(show: false),
-                        titlesData: FlTitlesData(show: false),
-                        borderData: FlBorderData(show: false),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: _getLast30DaysSpots(allDaysData),
-                            isCurved: true,
-                            barWidth: 3,
-                            isStrokeCapRound: true,
-                            dotData: FlDotData(show: false),
-                            color: const Color(0xFF369FFF), // App's blue color
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  // Replace this section:
+// Text('Last 30 Days Trend'...
+// SizedBox(height: 155, child: LineChart(...
+
+// With:
+                  build30DayTrendChart(allDaysData, goal, highest),
                   const SizedBox(height: 20),
 
                   // Today's log entries

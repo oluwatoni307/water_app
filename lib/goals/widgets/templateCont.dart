@@ -37,6 +37,7 @@ class TemplateGoalContainer extends StatelessWidget {
               children: [
                 Text(
                   'Hydrate Smart for the Season 💧',
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:water/NotificationService.dart';
+import 'package:water/forgetPasword.dart';
 import 'package:water/sign_up.dart';
 import 'logic.dart'; // contains AuthService & Data
 import 'Homepage.dart'; // your post‑login landing page
@@ -23,7 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _initializeNotificationsAsync() async {
     try {
       await NotificationService().initialize();
-      await NotificationService().scheduleHydrationReminder();
+      await NotificationService().scheduleHydrationNotifications();
     } catch (e) {
       debugPrint('⚠️ Notification setup failed: $e');
     }
@@ -110,14 +111,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     minimumSize: const Size.fromHeight(50)),
               ),
               const SizedBox(height: 20),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SignUpScreen()),
-                  );
-                },
-                child: const Text("Don't have an account? Sign up"),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SignUpScreen()),
+                      );
+                    },
+                    child: const Text("Don't have an account? Sign up",
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w700)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordPage()),
+                      );
+                    },
+                    child: Text("Forgot Password?",
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w500)),
+                  ),
+                ],
               ),
             ],
           ),

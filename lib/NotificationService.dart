@@ -59,6 +59,137 @@ class NotificationService {
     }
   }
 
+  /// Schedules welcome notification and bi-hourly hydration reminders
+  Future<void> scheduleHydrationNotifications() async {
+    if (!_initialized) await initialize();
+
+    // Cancel any existing notifications
+    await cancelHydrationNotifications();
+
+    // Create notification channels
+    const welcomeChannel = AndroidNotificationChannel(
+      'welcome_hydration',
+      'Welcome Messages',
+      description: 'Welcome messages for hydration app',
+      importance: Importance.high,
+    );
+
+    const biHourlyChannel = AndroidNotificationChannel(
+      'bihourly_hydration_reminders',
+      'Bi-Hourly Hydration Reminders',
+      description: 'Bi-hourly reminders to drink water throughout the day',
+      importance: Importance.high,
+    );
+
+    final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidPlugin?.createNotificationChannel(welcomeChannel);
+    await androidPlugin?.createNotificationChannel(biHourlyChannel);
+
+    final now = tz.TZDateTime.now(tz.local);
+
+    // 1. Schedule welcome notification after 5 minutes
+    final welcomeTime = now.add(const Duration(minutes: 5));
+
+    const welcomeAndroidDetails = AndroidNotificationDetails(
+      'welcome_hydration',
+      'Welcome Messages',
+      channelDescription: 'Welcome messages for hydration app',
+      importance: Importance.high,
+      priority: Priority.high,
+      styleInformation: BigTextStyleInformation(
+        '🎉 Welcome to your hydration journey!\nWe\'ll help you stay healthy and hydrated throughout the day. Let\'s begin!',
+      ),
+    );
+
+    const welcomeDetails = NotificationDetails(android: welcomeAndroidDetails);
+
+    await _notifications.zonedSchedule(
+      999, // Welcome notification ID
+      'Welcome to Hydration Helper! 🎉',
+      'Your journey to better health starts now!',
+      welcomeTime,
+      welcomeDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: '/',
+    );
+
+    // 2. Schedule bi-hourly reminders (every 2 hours, max 1000 notifications)
+    const int maxNotifications = 1000;
+
+    final List<String> messages = [
+      'Time to hydrate! 💧',
+      'Stay refreshed - drink some water! 🌊',
+      'Your body needs water! 💙',
+      'Hydration break time! 🥤',
+      'Keep yourself energized with water! ⚡',
+      'Water is life - take a sip! 🌿',
+      'Stay healthy, stay hydrated! 🌟',
+      'Refresh yourself with water! 🔄',
+      'Don\'t forget to drink water! 🚰',
+      'Hydration is key to wellness! 🔑',
+      'Take a water break! ⏰',
+      'Your cells need hydration! 🧬',
+      'Pure water, pure energy! ✨',
+      'Sip by sip, stay healthy! 👍',
+      'Water fuels your body! 🔋',
+      'Stay cool, drink water! 🧊',
+    ];
+
+    int notificationId = 1000;
+
+    // Start bi-hourly notifications 2 hours after welcome message
+    for (int i = 1; i <= maxNotifications; i++) {
+      final scheduledTime = now.add(Duration(hours: 2 * i));
+      final message = messages[i % messages.length];
+
+      const androidDetails = AndroidNotificationDetails(
+        'bihourly_hydration_reminders',
+        'Bi-Hourly Hydration Reminders',
+        channelDescription:
+            'Bi-hourly reminders to drink water throughout the day',
+        importance: Importance.high,
+        priority: Priority.high,
+        styleInformation: BigTextStyleInformation(
+          '💧 Bi-Hourly Hydration Reminder\nStay energized and drink some water to keep yourself healthy!',
+        ),
+      );
+
+      const details = NotificationDetails(android: androidDetails);
+
+      await _notifications.zonedSchedule(
+        notificationId++,
+        'Hydration Time 💧',
+        message,
+        scheduledTime,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: '/',
+      );
+
+      // Add a small delay every 50 notifications to prevent overwhelming the system
+      if (i % 50 == 0) {
+        await Future.delayed(const Duration(milliseconds: 10));
+        if (kDebugMode)
+          print('📅 Scheduled ${i} bi-hourly notifications so far...');
+      }
+    }
+
+    // Calculate end date (1000 notifications * 2 hours = 2000 hours ≈ 83 days)
+    final totalHours = maxNotifications * 2;
+    final totalDays = (totalHours / 24).round();
+    final endDate = now.add(Duration(hours: totalHours));
+
+    if (kDebugMode) {
+      print('🎉 Welcome notification scheduled for: $welcomeTime');
+      print('🕒 Scheduled $maxNotifications bi-hourly hydration reminders');
+      print(
+          '📅 Bi-hourly reminders start: ${now.add(const Duration(hours: 2))}');
+      print('📅 Notifications end after ~$totalDays days: $endDate');
+    }
+  }
+
   /// Schedules a hydration notification in 10 seconds (for testing)
   Future<void> scheduleHydrationReminder() async {
     if (!_initialized) await initialize();
@@ -100,12 +231,11 @@ class NotificationService {
       scheduledTime,
       details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      // Deprecated, just remove or leave null
       payload: '/',
     );
 
     if (kDebugMode) {
-      print('🕒 Hydration reminder scheduled for $scheduledTime');
+      print('🕒 Test hydration reminder scheduled for $scheduledTime');
     }
   }
 
@@ -131,9 +261,41 @@ class NotificationService {
     );
   }
 
+  /// Cancels hydration notifications (welcome + bi-hourly)
+  Future<void> cancelHydrationNotifications() async {
+    // Cancel welcome notification
+    await _notifications.cancel(999);
+
+    // Cancel bi-hourly notifications (max 1000)
+    for (int i = 1000; i < 2000; i++) {
+      await _notifications.cancel(i);
+
+      // Add small delay every 50 cancellations to prevent overwhelming the system
+      if ((i - 1000) % 50 == 0 && (i - 1000) > 0) {
+        await Future.delayed(const Duration(milliseconds: 5));
+      }
+    }
+
+    if (kDebugMode)
+      print(
+          '🔕 All hydration notifications canceled (welcome + 1000 bi-hourly)');
+  }
+
   /// Cancels all scheduled notifications
   Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
     if (kDebugMode) print('🔕 All notifications canceled');
+  }
+
+  /// Get the status of scheduled notifications (for debugging)
+  Future<void> getScheduledNotifications() async {
+    final pendingNotifications =
+        await _notifications.pendingNotificationRequests();
+    if (kDebugMode) {
+      print('📋 Pending notifications: ${pendingNotifications.length}');
+      for (final notification in pendingNotifications) {
+        print('  - ID: ${notification.id}, Title: ${notification.title}');
+      }
+    }
   }
 }

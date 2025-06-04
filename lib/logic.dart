@@ -10,6 +10,18 @@ bool _isSignUp = false;
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  /// Sends a password reset email to the specified email address
+  /// Throws FirebaseAuthException if the email is invalid or not found
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      if (kDebugMode) print('Password reset email sent to $email');
+    } catch (e) {
+      if (kDebugMode) print('Error sending password reset email: $e');
+      rethrow;
+    }
+  }
+
   Future<String> getCurrentUID() async {
     final user = _auth.currentUser;
     if (user == null) {
