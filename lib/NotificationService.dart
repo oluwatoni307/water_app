@@ -111,7 +111,7 @@ class NotificationService {
       'Your journey to better health starts now!',
       welcomeTime,
       welcomeDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.alarmClock,
       payload: '/',
     );
 
@@ -164,7 +164,7 @@ class NotificationService {
         message,
         scheduledTime,
         details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
         payload: '/',
       );
 

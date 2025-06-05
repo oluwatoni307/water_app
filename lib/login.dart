@@ -112,29 +112,50 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 20),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SignUpScreen()),
-                      );
-                    },
-                    child: const Text("Don't have an account? Sign up",
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w700)),
+                  Flexible(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SignUpScreen()),
+                            );
+                          },
+                          child: const Text("Don't have an account? Sign up",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w700)),
+                        ),
+                      ],
+                    ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const ForgotPasswordPage()),
-                      );
-                    },
-                    child: Text("Forgot Password?",
-                        style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w500)),
+                  Flexible(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const ForgotPasswordPage()),
+                            );
+                          },
+                          child: const Text("Forgot Password?",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w500)),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
