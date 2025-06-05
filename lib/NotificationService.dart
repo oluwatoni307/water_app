@@ -115,8 +115,7 @@ class NotificationService {
       'Your journey to better health starts now!',
       welcomeTime,
       welcomeDetails,
-      androidScheduleMode:
-          AndroidScheduleMode.exactAllowWhileIdle, // Changed from alarmClock
+      androidScheduleMode: AndroidScheduleMode.exact, // Changed from alarmClock
       payload: '/',
     );
 
@@ -177,8 +176,8 @@ class NotificationService {
           message,
           scheduledTime,
           details,
-          androidScheduleMode: AndroidScheduleMode
-              .exactAllowWhileIdle, // Changed from alarmClock
+          androidScheduleMode:
+              AndroidScheduleMode.exact, // Changed from alarmClock
           payload: '/',
         );
       } catch (e) {
@@ -247,7 +246,7 @@ class NotificationService {
       'Take a refreshing sip of water!',
       scheduledTime,
       details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.exact,
       payload: '/',
     );
 
@@ -388,7 +387,7 @@ class NotificationService {
           message,
           scheduledTime,
           details,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: AndroidScheduleMode.exact,
           payload: '/',
         );
       }
