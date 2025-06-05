@@ -116,7 +116,7 @@ class NotificationService {
       welcomeTime,
       welcomeDetails,
       androidScheduleMode:
-          AndroidScheduleMode.alarmClock, // Changed from alarmClock
+          AndroidScheduleMode.exactAllowWhileIdle, // Changed from alarmClock
       payload: '/',
     );
 
@@ -177,8 +177,8 @@ class NotificationService {
           message,
           scheduledTime,
           details,
-          androidScheduleMode:
-              AndroidScheduleMode.alarmClock, // Changed from alarmClock
+          androidScheduleMode: AndroidScheduleMode
+              .exactAllowWhileIdle, // Changed from alarmClock
           payload: '/',
         );
       } catch (e) {
@@ -247,7 +247,7 @@ class NotificationService {
       'Take a refreshing sip of water!',
       scheduledTime,
       details,
-      androidScheduleMode: AndroidScheduleMode.alarmClock,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: '/',
     );
 
@@ -388,7 +388,7 @@ class NotificationService {
           message,
           scheduledTime,
           details,
-          androidScheduleMode: AndroidScheduleMode.alarmClock,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           payload: '/',
         );
       }
