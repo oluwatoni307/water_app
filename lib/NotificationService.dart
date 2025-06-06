@@ -5,253 +5,130 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// Global navigator key for payload routing
+// Global navigator key to handle payload routing
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class NotificationService {
-  static final NotificationService _instance = NotificationService._internal();
-  factory NotificationService() => _instance;
-  NotificationService._internal();
-
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
 
-  // Notification channel constants
-  static const String _channelId = 'hydration_notifications';
-  static const String _channelName = 'Hydration Notifications';
-  static const String _channelDescription = 'Hydration reminder notifications';
-
-  // Notification IDs
-  static const int _welcomeNotificationId = 999;
-  static const int _reminderBaseId = 1000;
-
-  /// Initialize the notification service
+  /// Initializes the notification service
   Future<void> initialize() async {
     if (_initialized) return;
 
-    try {
-      tz_data.initializeTimeZones();
+    tz_data.initializeTimeZones();
 
-      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const initSettings = InitializationSettings(android: androidInit);
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
 
-      await _notifications.initialize(
-        initSettings,
-        onDidReceiveNotificationResponse: _onNotificationTapped,
-      );
+    const initSettings = InitializationSettings(
+      android: androidInit,
+    );
 
-      await _setupNotificationChannel();
-      await _requestAllPermissions();
+    await _notifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onNotificationTapped,
+    );
 
-      _initialized = true;
-      _log('✅ Notification service initialized successfully');
-    } catch (e) {
-      _log('❌ Failed to initialize notification service: $e');
-      rethrow;
+    await _requestNotificationPermission();
+
+    _initialized = true;
+
+    if (kDebugMode) print('✅ Notification service initialized');
+  }
+
+  /// Requests notification permission for Android 13+
+  Future<void> _requestNotificationPermission() async {
+    final status = await Permission.notification.status;
+    if (!status.isGranted) {
+      final result = await Permission.notification.request();
+      if (kDebugMode) {
+        print(result.isGranted
+            ? '✅ Notification permission granted'
+            : '❌ Notification permission denied');
+      }
     }
   }
 
-  /// Setup notification channel
-  Future<void> _setupNotificationChannel() async {
-    const channel = AndroidNotificationChannel(
-      _channelId,
-      _channelName,
-      description: _channelDescription,
+  /// Handles notification tap
+  void _onNotificationTapped(NotificationResponse response) {
+    if (kDebugMode) print('🔔 Notification tapped: ${response.payload}');
+    if (response.payload != null && response.payload!.isNotEmpty) {
+      navigatorKey.currentState?.pushNamed(response.payload!);
+    }
+  }
+
+  /// Schedules welcome notification and bi-hourly hydration reminders
+  Future<void> scheduleHydrationNotifications() async {
+    if (!_initialized) await initialize();
+
+    // Cancel any existing notifications
+    await cancelHydrationNotifications();
+
+    // Create a single notification channel for all hydration notifications
+    const hydrationChannel = AndroidNotificationChannel(
+      'hydration_notifications',
+      'Hydration Notifications',
+      description: 'All hydration related notifications',
       importance: Importance.defaultImportance,
-      enableVibration: true,
-      showBadge: true,
     );
 
     final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
 
-    await androidPlugin?.createNotificationChannel(channel);
-  }
-
-  /// Request all necessary permissions including battery optimization bypass
-  Future<void> _requestAllPermissions() async {
-    // Request notification permission
-    await _requestNotificationPermission();
-
-    // Request battery optimization bypass
-    await _requestBatteryOptimizationBypass();
-
-    // Request exact alarm permission for Android 12+
-    await _requestExactAlarmPermission();
-  }
-
-  /// Request notification permission
-  Future<void> _requestNotificationPermission() async {
-    final status = await Permission.notification.status;
-    if (!status.isGranted) {
-      final result = await Permission.notification.request();
-      _log(result.isGranted
-          ? '✅ Notification permission granted'
-          : '❌ Notification permission denied');
-    }
-  }
-
-  /// Request battery optimization bypass - critical for reliable notifications
-  Future<void> _requestBatteryOptimizationBypass() async {
-    try {
-      final status = await Permission.ignoreBatteryOptimizations.status;
-
-      if (!status.isGranted) {
-        // Show explanation dialog first
-        final shouldRequest = await _showBatteryOptimizationDialog();
-
-        if (shouldRequest) {
-          final result = await Permission.ignoreBatteryOptimizations.request();
-          _log(result.isGranted
-              ? '✅ Battery optimization bypass granted'
-              : '❌ Battery optimization bypass denied');
-
-          if (!result.isGranted) {
-            _showBatteryOptimizationInstructions();
-          }
-        }
-      } else {
-        _log('✅ Battery optimization already bypassed');
-      }
-    } catch (e) {
-      _log('❌ Error requesting battery optimization bypass: $e');
-    }
-  }
-
-  /// Request exact alarm permission for Android 12+
-  Future<void> _requestExactAlarmPermission() async {
-    try {
-      final status = await Permission.scheduleExactAlarm.status;
-      if (!status.isGranted) {
-        final result = await Permission.scheduleExactAlarm.request();
-        _log(result.isGranted
-            ? '✅ Exact alarm permission granted'
-            : '❌ Exact alarm permission denied');
-      }
-    } catch (e) {
-      _log('ℹ️ Exact alarm permission not available on this device');
-    }
-  }
-
-  /// Show dialog explaining why battery optimization bypass is needed
-  Future<bool> _showBatteryOptimizationDialog() async {
-    final context = navigatorKey.currentContext;
-    if (context == null) return false;
-
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Enable Reliable Notifications'),
-            content: const Text(
-              'To ensure your hydration reminders work consistently, please allow this app to bypass battery optimization.\n\n'
-              'This prevents Android from stopping notifications when the device is in power-saving mode.\n\n'
-              'Your hydration goals are important for your health!',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Maybe Later'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Allow'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
-  /// Show instructions for manual battery optimization settings
-  void _showBatteryOptimizationInstructions() {
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Manual Setup Required'),
-        content: const Text(
-          'For the most reliable hydration reminders:\n\n'
-          '1. Go to Settings → Apps → Hydration Helper\n'
-          '2. Select "Battery" or "Battery Optimization"\n'
-          '3. Choose "Don\'t optimize" or "Allow background activity"\n'
-          '4. Enable "Auto-start" if available\n\n'
-          'This ensures your health reminders always work!',
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Got it'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Handle notification tap
-  void _onNotificationTapped(NotificationResponse response) {
-    _log('🔔 Notification tapped: ${response.payload}');
-    if (response.payload?.isNotEmpty == true) {
-      navigatorKey.currentState?.pushNamed(response.payload!);
-    }
-  }
-
-  /// Schedule complete hydration notification system
-  Future<void> scheduleHydrationNotifications() async {
-    await _ensureInitialized();
-    await cancelAllNotifications();
+    await androidPlugin?.createNotificationChannel(hydrationChannel);
 
     final now = tz.TZDateTime.now(tz.local);
 
-    // Schedule welcome notification
+    // 1. Schedule welcome notification after 5 minutes
     await _scheduleWelcomeNotification(now);
 
-    // Schedule regular hydration reminders
-    await _scheduleHydrationReminders(now);
+    // 2. Schedule limited bi-hourly reminders (reduced from 1000 to 50)
+    await _scheduleBiHourlyReminders(now);
 
-    _log('🎉 Complete hydration notification system scheduled');
+    if (kDebugMode) {
+      print('🎉 All hydration notifications scheduled successfully');
+    }
   }
 
-  /// Schedule welcome notification
+  /// Schedules the welcome notification
   Future<void> _scheduleWelcomeNotification(tz.TZDateTime now) async {
-    final welcomeTime = now.add(const Duration(minutes: 2));
+    final welcomeTime = now.add(const Duration(minutes: 5));
 
-    const androidDetails = AndroidNotificationDetails(
-      _channelId,
-      _channelName,
-      channelDescription: _channelDescription,
-      importance: Importance.low,
-      priority: Priority.low,
+    const welcomeAndroidDetails = AndroidNotificationDetails(
+      'hydration_notifications',
+      'Hydration Notifications',
+      channelDescription: 'All hydration related notifications',
+      importance: Importance.defaultImportance,
+      priority: Priority.defaultPriority,
       styleInformation: BigTextStyleInformation(
-        '🎉 Welcome to your hydration journey!\n'
-        'We\'ll help you stay healthy and hydrated throughout the day. '
-        'Your first reminder will arrive soon!',
+        '🎉 Welcome to your hydration journey!\nWe\'ll help you stay healthy and hydrated throughout the day. Let\'s begin!',
       ),
-      icon: '@mipmap/ic_launcher',
     );
 
-    const details = NotificationDetails(android: androidDetails);
+    const welcomeDetails = NotificationDetails(android: welcomeAndroidDetails);
 
     await _notifications.zonedSchedule(
-      _welcomeNotificationId,
+      999, // Welcome notification ID
       'Welcome to Hydration Helper! 🎉',
       'Your journey to better health starts now!',
       welcomeTime,
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      welcomeDetails,
+      androidScheduleMode:
+          AndroidScheduleMode.exactAllowWhileIdle, // Changed from alarmClock
       payload: '/',
     );
 
-    _log('🎉 Welcome notification scheduled for: $welcomeTime');
+    if (kDebugMode) {
+      print('🎉 Welcome notification scheduled for: $welcomeTime');
+    }
   }
 
-  /// Schedule regular hydration reminders (3-minute intervals for testing)
-  Future<void> _scheduleHydrationReminders(tz.TZDateTime now) async {
-    const int totalReminders = 15; // 15 reminders for testing
-    const int intervalMinutes = 3;
+  /// Schedules bi-hourly reminders (reduced count for better reliability)
+  Future<void> _scheduleBiHourlyReminders(tz.TZDateTime now) async {
+    // Testing with 10 notifications at 3-minute intervals
+    const int maxNotifications = 10;
 
     final List<String> messages = [
       'Time to hydrate! 💧',
@@ -266,31 +143,29 @@ class NotificationService {
       'Hydration is key to wellness! 🔑',
       'Take a water break! ⏰',
       'Your cells need hydration! 🧬',
+      'Pure water, pure energy! ✨',
+      'Sip by sip, stay healthy! 👍',
+      'Water fuels your body! 🔋',
+      'Stay cool, drink water! 🧊',
     ];
 
-    int notificationId = _reminderBaseId;
-    int successCount = 0;
+    int notificationId = 1000;
 
-    // Start reminders 3 minutes after welcome (5 minutes total from now)
-    tz.TZDateTime startTime = now.add(const Duration(minutes: 5));
-
-    for (int i = 0; i < totalReminders; i++) {
+    // Start notifications 3 minutes after the welcome message
+    for (int i = 1; i <= maxNotifications; i++) {
       final scheduledTime =
-          startTime.add(Duration(minutes: intervalMinutes * i));
+          now.add(Duration(minutes: 3 * i)); // Changed from hours to minutes
       final message = messages[i % messages.length];
 
       const androidDetails = AndroidNotificationDetails(
-        _channelId,
-        _channelName,
-        channelDescription: _channelDescription,
+        'hydration_notifications',
+        'Hydration Notifications',
+        channelDescription: 'All hydration related notifications',
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
-        styleInformation: const BigTextStyleInformation(
-          '💧 Test Hydration Reminder\n'
-          'Testing notification delivery - drink some water! '
-          'This is a test reminder to verify notifications work.',
+        styleInformation: BigTextStyleInformation(
+          '💧 3-Minute Hydration Reminder\nStay energized and drink some water to keep yourself healthy!',
         ),
-        icon: '@mipmap/ic_launcher',
       );
 
       const details = NotificationDetails(android: androidDetails);
@@ -298,120 +173,232 @@ class NotificationService {
       try {
         await _notifications.zonedSchedule(
           notificationId++,
-          'Test Hydration 💧 #${i + 1}',
+          'Hydration Time 💧',
           message,
           scheduledTime,
           details,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: AndroidScheduleMode
+              .exactAllowWhileIdle, // Changed from alarmClock
           payload: '/',
         );
-        successCount++;
-
-        // Small delay to prevent overwhelming the system
-        if (i % 5 == 0 && i > 0) {
-          await Future.delayed(const Duration(milliseconds: 50));
-        }
       } catch (e) {
-        _log('❌ Failed to schedule notification ${i + 1}: $e');
+        if (kDebugMode) print('❌ Failed to schedule notification $i: $e');
+        break; // Stop scheduling if we hit an error
+      }
+
+      // Add a small delay every 10 notifications to prevent overwhelming the system
+      if (i % 10 == 0) {
+        await Future.delayed(const Duration(milliseconds: 50));
+        if (kDebugMode)
+          print('📅 Scheduled $i bi-hourly notifications so far...');
       }
     }
 
-    final totalMinutes = intervalMinutes * (totalReminders - 1);
-    final endTime = startTime.add(Duration(minutes: totalMinutes));
-    _log('📅 Scheduled $successCount/$totalReminders test hydration reminders');
-    _log(
-        '📅 Test reminders: $startTime to $endTime (every $intervalMinutes minutes)');
-    _log('🧪 Total testing duration: ${totalMinutes} minutes');
+    // Calculate end time for testing
+    final totalMinutes = maxNotifications * 3;
+    final endTime = now.add(Duration(minutes: totalMinutes));
+
+    if (kDebugMode) {
+      print(
+          '🕒 Scheduled $maxNotifications hydration reminders at 3-minute intervals');
+      print('📅 Reminders start: ${now.add(const Duration(minutes: 3))}');
+      print(
+          '📅 Notifications end at: $endTime (${totalMinutes} minutes total)');
+    }
   }
 
-  /// Schedule a test notification (10 seconds)
-  Future<void> scheduleTestNotification() async {
-    await _ensureInitialized();
+  /// Schedules a hydration notification in 10 seconds (for testing)
+  Future<void> scheduleHydrationReminder() async {
+    if (!_initialized) await initialize();
+
+    await _notifications.cancel(1);
+
+    const channel = AndroidNotificationChannel(
+      'hydration_test',
+      'Hydration Test',
+      description: 'Test hydration notifications',
+      importance: Importance.high,
+    );
+
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
 
     final now = tz.TZDateTime.now(tz.local);
     final scheduledTime = now.add(const Duration(seconds: 10));
 
     const androidDetails = AndroidNotificationDetails(
-      _channelId,
-      _channelName,
-      channelDescription: 'Test notification',
+      'hydration_test',
+      'Hydration Test',
+      channelDescription: 'Test hydration notifications',
       importance: Importance.high,
       priority: Priority.high,
+      styleInformation: BigTextStyleInformation(
+        '💧 Time to hydrate!\nStay energized and drink some water.',
+      ),
     );
 
     const details = NotificationDetails(android: androidDetails);
 
     await _notifications.zonedSchedule(
       1,
-      'Test Notification 🧪',
-      'This is a test - your notifications are working!',
+      'Hydration Time 💧',
+      'Take a refreshing sip of water!',
       scheduledTime,
       details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: '/',
     );
 
-    _log('🧪 Test notification scheduled for: $scheduledTime');
+    if (kDebugMode) {
+      print('🕒 Test hydration reminder scheduled for $scheduledTime');
+    }
   }
 
-  /// Show immediate test notification
-  Future<void> showInstantNotification() async {
-    await _ensureInitialized();
+  /// Show an instant notification for testing
+  Future<void> showTestNotification() async {
+    if (!_initialized) await initialize();
 
     const androidDetails = AndroidNotificationDetails(
-      _channelId,
-      _channelName,
-      channelDescription: 'Instant test notification',
-      importance: Importance.defaultImportance,
-      priority: Priority.defaultPriority,
+      'hydration_test',
+      'Hydration Test',
+      channelDescription: 'Hydration test notification',
+      importance: Importance.high,
+      priority: Priority.high,
     );
 
     const details = NotificationDetails(android: androidDetails);
 
     await _notifications.show(
       100,
-      'Instant Test ⚡',
-      'Notifications are working perfectly!',
+      'Test Notification ✅',
+      'This is a test notification',
       details,
     );
-
-    _log('⚡ Instant notification shown');
   }
 
-  /// Cancel all hydration notifications
-  Future<void> cancelAllNotifications() async {
+  /// Cancels hydration notifications (welcome + bi-hourly)
+  Future<void> cancelHydrationNotifications() async {
     // Cancel welcome notification
-    await _notifications.cancel(_welcomeNotificationId);
+    await _notifications.cancel(999);
 
-    // Cancel all reminder notifications
-    for (int i = _reminderBaseId; i < _reminderBaseId + 50; i++) {
+    // Cancel hydration notifications (reduced to 10 for testing)
+    for (int i = 1000; i < 1010; i++) {
       await _notifications.cancel(i);
+
+      // Add small delay every 25 cancellations
+      if ((i - 1000) % 25 == 0 && (i - 1000) > 0) {
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
     }
 
-    _log('🔕 All hydration notifications canceled');
+    if (kDebugMode)
+      print(
+          '🔕 All hydration notifications canceled (welcome + 10 test reminders)');
   }
 
-  /// Get notification status for debugging
-  Future<void> getNotificationStatus() async {
-    final pending = await _notifications.pendingNotificationRequests();
-    _log('📋 Pending notifications: ${pending.length}');
+  /// Cancels all scheduled notifications
+  Future<void> cancelAllNotifications() async {
+    await _notifications.cancelAll();
+    if (kDebugMode) print('🔕 All notifications canceled');
+  }
 
-    for (final notification in pending.take(5)) {
-      _log('  - ID: ${notification.id}, Title: ${notification.title}');
-    }
-
-    if (pending.length > 5) {
-      _log('  ... and ${pending.length - 5} more');
+  /// Get the status of scheduled notifications (for debugging)
+  Future<void> getScheduledNotifications() async {
+    final pendingNotifications =
+        await _notifications.pendingNotificationRequests();
+    if (kDebugMode) {
+      print('📋 Pending notifications: ${pendingNotifications.length}');
+      for (final notification in pendingNotifications.take(10)) {
+        print('  - ID: ${notification.id}, Title: ${notification.title}');
+      }
+      if (pendingNotifications.length > 10) {
+        print('  ... and ${pendingNotifications.length - 10} more');
+      }
     }
   }
 
-  /// Ensure service is initialized
-  Future<void> _ensureInitialized() async {
+  /// Schedule notifications in smaller batches for better reliability
+  Future<void> scheduleHydrationNotificationsBatch() async {
     if (!_initialized) await initialize();
+
+    await cancelHydrationNotifications();
+
+    // Create notification channel
+    const hydrationChannel = AndroidNotificationChannel(
+      'hydration_notifications',
+      'Hydration Notifications',
+      description: 'All hydration related notifications',
+      importance: Importance.high,
+    );
+
+    final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidPlugin?.createNotificationChannel(hydrationChannel);
+
+    final now = tz.TZDateTime.now(tz.local);
+
+    // Schedule welcome notification
+    await _scheduleWelcomeNotification(now);
+
+    // Schedule notifications in batches of 10 over time
+    await _scheduleBatchedNotifications(now);
+
+    if (kDebugMode) {
+      print('🎉 Batch hydration notifications scheduled successfully');
+    }
   }
 
-  /// Utility logging method
-  void _log(String message) {
-    if (kDebugMode) print(message);
+  /// Schedule notifications in smaller batches
+  Future<void> _scheduleBatchedNotifications(tz.TZDateTime now) async {
+    const int batchSize = 10;
+    const int totalBatches = 5; // Total of 50 notifications
+
+    final List<String> messages = [
+      'Time to hydrate! 💧',
+      'Stay refreshed - drink some water! 🌊',
+      'Your body needs water! 💙',
+      'Hydration break time! 🥤',
+      'Keep yourself energized with water! ⚡',
+    ];
+
+    int notificationId = 1000;
+
+    for (int batch = 0; batch < totalBatches; batch++) {
+      for (int i = 0; i < batchSize; i++) {
+        final notificationIndex = batch * batchSize + i + 1;
+        final scheduledTime = now.add(Duration(hours: 2 * notificationIndex));
+        final message = messages[i % messages.length];
+
+        const androidDetails = AndroidNotificationDetails(
+          'hydration_notifications',
+          'Hydration Notifications',
+          channelDescription: 'All hydration related notifications',
+          importance: Importance.high,
+          priority: Priority.high,
+        );
+
+        const details = NotificationDetails(android: androidDetails);
+
+        await _notifications.zonedSchedule(
+          notificationId++,
+          'Hydration Time 💧',
+          message,
+          scheduledTime,
+          details,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          payload: '/',
+        );
+      }
+
+      // Delay between batches
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (kDebugMode) {
+        print('📅 Scheduled batch ${batch + 1}/$totalBatches');
+      }
+    }
   }
 }
