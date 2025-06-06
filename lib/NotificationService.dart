@@ -59,7 +59,7 @@ class NotificationService {
       _channelId,
       _channelName,
       description: _channelDescription,
-      importance: Importance.high,
+      importance: Importance.defaultImportance,
       enableVibration: true,
       showBadge: true,
     );
@@ -223,8 +223,8 @@ class NotificationService {
       _channelId,
       _channelName,
       channelDescription: _channelDescription,
-      importance: Importance.high,
-      priority: Priority.high,
+      importance: Importance.defaultImportance,
+      priority: Priority.defaultPriority,
       styleInformation: BigTextStyleInformation(
         '🎉 Welcome to your hydration journey!\n'
         'We\'ll help you stay healthy and hydrated throughout the day. '
@@ -283,8 +283,8 @@ class NotificationService {
         _channelId,
         _channelName,
         channelDescription: _channelDescription,
-        importance: Importance.high,
-        priority: Priority.high,
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
         styleInformation: const BigTextStyleInformation(
           '💧 Test Hydration Reminder\n'
           'Testing notification delivery - drink some water! '
@@ -362,8 +362,8 @@ class NotificationService {
       _channelId,
       _channelName,
       channelDescription: 'Instant test notification',
-      importance: Importance.high,
-      priority: Priority.high,
+      importance: Importance.defaultImportance,
+      priority: Priority.defaultPriority,
     );
 
     const details = NotificationDetails(android: androidDetails);
