@@ -223,8 +223,8 @@ class NotificationService {
       _channelId,
       _channelName,
       channelDescription: _channelDescription,
-      importance: Importance.defaultImportance,
-      priority: Priority.defaultPriority,
+      importance: Importance.low,
+      priority: Priority.low,
       styleInformation: BigTextStyleInformation(
         '🎉 Welcome to your hydration journey!\n'
         'We\'ll help you stay healthy and hydrated throughout the day. '
