@@ -131,7 +131,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         final notificationService = NotificationService();
         await notificationService.initialize();
-        await notificationService.scheduleHydrationNotifications();
+        await notificationService.scheduleFiveNotifications();
       });
     } on FirebaseAuthException catch (e) {
       print("Auth error: ${e.code} - ${e.message}");

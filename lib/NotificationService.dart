@@ -59,226 +59,210 @@ class NotificationService {
     }
   }
 
-  /// Schedules welcome notification and bi-hourly hydration reminders
-  Future<void> scheduleHydrationNotifications() async {
+  /// Schedules 5 different notifications with 1-minute intervals
+  Future<void> scheduleFiveNotifications() async {
     if (!_initialized) await initialize();
 
     // Cancel any existing notifications
-    await cancelHydrationNotifications();
+    await cancelAllNotifications();
 
-    // Create notification channels
-    const welcomeChannel = AndroidNotificationChannel(
-      'welcome_hydration',
-      'Welcome Messages',
-      description: 'Welcome messages for hydration app',
-      importance: Importance.high,
-    );
-
-    const biHourlyChannel = AndroidNotificationChannel(
-      'bihourly_hydration_reminders',
-      'Bi-Hourly Hydration Reminders',
-      description: 'Bi-hourly reminders to drink water throughout the day',
-      importance: Importance.high,
-    );
+    // Create 5 different notification channels
+    final channels = [
+      const AndroidNotificationChannel(
+        'hydration_channel',
+        'Hydration Reminders',
+        description: 'Stay hydrated with water reminders',
+        importance: Importance.max,
+      ),
+      const AndroidNotificationChannel(
+        'health_channel',
+        'Health Tips',
+        description: 'Daily health and wellness tips',
+        importance: Importance.max,
+      ),
+      const AndroidNotificationChannel(
+        'energy_channel',
+        'Energy Boosters',
+        description: 'Energy and motivation reminders',
+        importance: Importance.max,
+      ),
+      const AndroidNotificationChannel(
+        'wellness_channel',
+        'Wellness Check',
+        description: 'Overall wellness reminders',
+        importance: Importance.max,
+      ),
+      const AndroidNotificationChannel(
+        'motivation_channel',
+        'Daily Motivation',
+        description: 'Motivational quotes and reminders',
+        importance: Importance.max,
+      ),
+    ];
 
     final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
 
-    await androidPlugin?.createNotificationChannel(welcomeChannel);
-    await androidPlugin?.createNotificationChannel(biHourlyChannel);
+    // Create all channels
+    for (final channel in channels) {
+      await androidPlugin?.createNotificationChannel(channel);
+    }
 
     final now = tz.TZDateTime.now(tz.local);
 
-    // 1. Schedule welcome notification after 5 minutes
-    final welcomeTime = now.add(const Duration(minutes: 5));
-
-    const welcomeAndroidDetails = AndroidNotificationDetails(
-      'welcome_hydration',
-      'Welcome Messages',
-      channelDescription: 'Welcome messages for hydration app',
-      importance: Importance.high,
-      priority: Priority.high,
-      styleInformation: BigTextStyleInformation(
-        '🎉 Welcome to your hydration journey!\nWe\'ll help you stay healthy and hydrated throughout the day. Let\'s begin!',
-      ),
-    );
-
-    const welcomeDetails = NotificationDetails(android: welcomeAndroidDetails);
-
-    await _notifications.zonedSchedule(
-      999, // Welcome notification ID
-      'Welcome to Hydration Helper! 🎉',
-      'Your journey to better health starts now!',
-      welcomeTime,
-      welcomeDetails,
-      androidScheduleMode: AndroidScheduleMode.alarmClock,
-      payload: '/',
-    );
-
-    // 2. Schedule bi-hourly reminders (every 2 hours, max 1000 notifications)
-    const int maxNotifications = 1000;
-
-    final List<String> messages = [
-      'Time to hydrate! 💧',
-      'Stay refreshed - drink some water! 🌊',
-      'Your body needs water! 💙',
-      'Hydration break time! 🥤',
-      'Keep yourself energized with water! ⚡',
-      'Water is life - take a sip! 🌿',
-      'Stay healthy, stay hydrated! 🌟',
-      'Refresh yourself with water! 🔄',
-      'Don\'t forget to drink water! 🚰',
-      'Hydration is key to wellness! 🔑',
-      'Take a water break! ⏰',
-      'Your cells need hydration! 🧬',
-      'Pure water, pure energy! ✨',
-      'Sip by sip, stay healthy! 👍',
-      'Water fuels your body! 🔋',
-      'Stay cool, drink water! 🧊',
+    // Define notification data for each of the 5 notifications
+    final notificationData = [
+      {
+        'id': 1,
+        'channelId': 'hydration_channel',
+        'channelName': 'Hydration Reminders',
+        'title': 'Hydration Time 💧',
+        'body': 'Time to drink some water! Stay hydrated!',
+        'bigText':
+            '💧 Hydration Alert!\nYour body needs water to function properly. Take a moment to drink some refreshing water now!',
+      },
+      {
+        'id': 2,
+        'channelId': 'health_channel',
+        'channelName': 'Health Tips',
+        'title': 'Health Tip 🏥',
+        'body': 'Take care of your health today!',
+        'bigText':
+            '🏥 Health Reminder!\nTaking small steps towards better health makes a big difference. Remember to stay active and eat well!',
+      },
+      {
+        'id': 3,
+        'channelId': 'energy_channel',
+        'channelName': 'Energy Boosters',
+        'title': 'Energy Boost ⚡',
+        'body': 'Time to recharge your energy!',
+        'bigText':
+            '⚡ Energy Boost!\nTake a deep breath, stretch your body, and get ready to tackle your day with renewed energy!',
+      },
+      {
+        'id': 4,
+        'channelId': 'wellness_channel',
+        'channelName': 'Wellness Check',
+        'title': 'Wellness Check 🌟',
+        'body': 'How are you feeling today?',
+        'bigText':
+            '🌟 Wellness Check!\nTake a moment to check in with yourself. Your mental and physical wellness matters!',
+      },
+      {
+        'id': 5,
+        'channelId': 'motivation_channel',
+        'channelName': 'Daily Motivation',
+        'title': 'Stay Motivated 🚀',
+        'body': 'You\'re doing great! Keep going!',
+        'bigText':
+            '🚀 Motivation Boost!\nEvery step forward is progress. Believe in yourself and keep pushing towards your goals!',
+      },
     ];
 
-    int notificationId = 1000;
+    // Schedule each notification with 1-minute intervals using alarm clock mode
+    for (int i = 0; i < notificationData.length; i++) {
+      final data = notificationData[i];
+      final scheduledTime =
+          now.add(Duration(minutes: i + 1)); // 1, 2, 3, 4, 5 minutes
 
-    // Start bi-hourly notifications 2 hours after welcome message
-    for (int i = 1; i <= maxNotifications; i++) {
-      final scheduledTime = now.add(Duration(hours: 2 * i));
-      final message = messages[i % messages.length];
-
-      const androidDetails = AndroidNotificationDetails(
-        'bihourly_hydration_reminders',
-        'Bi-Hourly Hydration Reminders',
-        channelDescription:
-            'Bi-hourly reminders to drink water throughout the day',
-        importance: Importance.high,
-        priority: Priority.high,
+      final androidDetails = AndroidNotificationDetails(
+        data['channelId'] as String,
+        data['channelName'] as String,
+        channelDescription: channels[i].description,
+        importance: Importance.max,
+        priority: Priority.max,
         styleInformation: BigTextStyleInformation(
-          '💧 Bi-Hourly Hydration Reminder\nStay energized and drink some water to keep yourself healthy!',
+          data['bigText'] as String,
         ),
+        enableVibration: true,
+        playSound: true,
+      );
+
+      final details = NotificationDetails(android: androidDetails);
+
+      await _notifications.zonedSchedule(
+        data['id'] as int,
+        data['title'] as String,
+        data['body'] as String,
+        scheduledTime,
+        details,
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
+        payload: '/',
+      );
+
+      if (kDebugMode) {
+        print(
+            '📅 Scheduled notification ${i + 1}: ${data['title']} at $scheduledTime');
+      }
+    }
+
+    if (kDebugMode) {
+      print('🎉 All 5 notifications scheduled with 1-minute intervals');
+      print('📅 First notification: ${now.add(const Duration(minutes: 1))}');
+      print('📅 Last notification: ${now.add(const Duration(minutes: 5))}');
+    }
+  }
+
+  /// Show immediate test notifications for all 5 channels
+  Future<void> showFiveTestNotifications() async {
+    if (!_initialized) await initialize();
+
+    final testNotifications = [
+      {
+        'id': 101,
+        'channelId': 'hydration_channel',
+        'title': 'Test Hydration 💧',
+        'body': 'Hydration test notification',
+      },
+      {
+        'id': 102,
+        'channelId': 'health_channel',
+        'title': 'Test Health 🏥',
+        'body': 'Health test notification',
+      },
+      {
+        'id': 103,
+        'channelId': 'energy_channel',
+        'title': 'Test Energy ⚡',
+        'body': 'Energy test notification',
+      },
+      {
+        'id': 104,
+        'channelId': 'wellness_channel',
+        'title': 'Test Wellness 🌟',
+        'body': 'Wellness test notification',
+      },
+      {
+        'id': 105,
+        'channelId': 'motivation_channel',
+        'title': 'Test Motivation 🚀',
+        'body': 'Motivation test notification',
+      },
+    ];
+
+    for (final notification in testNotifications) {
+      const androidDetails = AndroidNotificationDetails(
+        'test_channel',
+        'Test Notifications',
+        channelDescription: 'Test notifications',
+        importance: Importance.max,
+        priority: Priority.max,
       );
 
       const details = NotificationDetails(android: androidDetails);
 
-      await _notifications.zonedSchedule(
-        notificationId++,
-        'Hydration Time 💧',
-        message,
-        scheduledTime,
+      await _notifications.show(
+        notification['id'] as int,
+        notification['title'] as String,
+        notification['body'] as String,
         details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        payload: '/',
       );
 
-      // Add a small delay every 50 notifications to prevent overwhelming the system
-      if (i % 50 == 0) {
-        await Future.delayed(const Duration(milliseconds: 10));
-        if (kDebugMode)
-          print('📅 Scheduled ${i} bi-hourly notifications so far...');
-      }
+      // Small delay between each test notification
+      await Future.delayed(const Duration(milliseconds: 500));
     }
 
-    // Calculate end date (1000 notifications * 2 hours = 2000 hours ≈ 83 days)
-    final totalHours = maxNotifications * 2;
-    final totalDays = (totalHours / 24).round();
-    final endDate = now.add(Duration(hours: totalHours));
-
-    if (kDebugMode) {
-      print('🎉 Welcome notification scheduled for: $welcomeTime');
-      print('🕒 Scheduled $maxNotifications bi-hourly hydration reminders');
-      print(
-          '📅 Bi-hourly reminders start: ${now.add(const Duration(hours: 2))}');
-      print('📅 Notifications end after ~$totalDays days: $endDate');
-    }
-  }
-
-  /// Schedules a hydration notification in 10 seconds (for testing)
-  Future<void> scheduleHydrationReminder() async {
-    if (!_initialized) await initialize();
-
-    await _notifications.cancel(1);
-
-    const channel = AndroidNotificationChannel(
-      'hydration_reminders',
-      'Hydration Reminders',
-      description: 'Reminders to drink water throughout the day',
-      importance: Importance.high,
-    );
-
-    await _notifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
-
-    final now = tz.TZDateTime.now(tz.local);
-    final scheduledTime = now.add(const Duration(seconds: 10));
-
-    const androidDetails = AndroidNotificationDetails(
-      'hydration_reminders',
-      'Hydration Reminders',
-      channelDescription: 'Reminders to drink water throughout the day',
-      importance: Importance.high,
-      priority: Priority.high,
-      styleInformation: BigTextStyleInformation(
-        '💧 Time to hydrate!\nStay energized and drink some water.',
-      ),
-    );
-
-    const details = NotificationDetails(android: androidDetails);
-
-    await _notifications.zonedSchedule(
-      1,
-      'Hydration Time 💧',
-      'Take a refreshing sip of water!',
-      scheduledTime,
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      payload: '/',
-    );
-
-    if (kDebugMode) {
-      print('🕒 Test hydration reminder scheduled for $scheduledTime');
-    }
-  }
-
-  /// Show an instant notification for testing
-  Future<void> showTestNotification() async {
-    if (!_initialized) await initialize();
-
-    const androidDetails = AndroidNotificationDetails(
-      'hydration_reminders',
-      'Hydration Reminders',
-      channelDescription: 'Hydration test notification',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
-
-    const details = NotificationDetails(android: androidDetails);
-
-    await _notifications.show(
-      100,
-      'Test Notification ✅',
-      'This is a test notification',
-      details,
-    );
-  }
-
-  /// Cancels hydration notifications (welcome + bi-hourly)
-  Future<void> cancelHydrationNotifications() async {
-    // Cancel welcome notification
-    await _notifications.cancel(999);
-
-    // Cancel bi-hourly notifications (max 1000)
-    for (int i = 1000; i < 2000; i++) {
-      await _notifications.cancel(i);
-
-      // Add small delay every 50 cancellations to prevent overwhelming the system
-      if ((i - 1000) % 50 == 0 && (i - 1000) > 0) {
-        await Future.delayed(const Duration(milliseconds: 5));
-      }
-    }
-
-    if (kDebugMode)
-      print(
-          '🔕 All hydration notifications canceled (welcome + 1000 bi-hourly)');
+    if (kDebugMode) print('🧪 Showed 5 test notifications');
   }
 
   /// Cancels all scheduled notifications
