@@ -24,7 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final notificationService = NotificationService();
       await notificationService.initialize();
-      await notificationService.startHydrationReminders();
+      await notificationService.scheduleHydrationNotifications();
       debugPrint('✅ WorkManager hydration reminders started successfully');
     } catch (e) {
       debugPrint('⚠️ Notification setup failed: $e');
