@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     
+    <!-- CRITICAL: Battery optimization bypass - allows app to run in background -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    
     <!-- Wake lock to ensure notifications work when device is sleeping -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     
