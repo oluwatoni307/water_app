@@ -2,11 +2,9 @@
     <!-- Basic notification permission (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
-    <!-- Required for exact alarm scheduling (your code uses exactAllowWhileIdle) -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    
-    <!-- Wake lock to ensure notifications work when device is sleeping -->
+    <!-- WorkManager permissions -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     
     <!-- Vibration permission (if you want notification vibration) -->
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -40,18 +38,36 @@
             </intent-filter>
         </activity>
         
-        <!-- Required for flutter_local_notifications plugin -->
-        <receiver 
-            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" 
+        <!-- WorkManager service -->
+        <service
+            android:name="be.tramckrijte.workmanager.WmWorker"
             android:exported="false" />
-        <receiver 
-            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            
+        <!-- WorkManager boot receiver to restart work after reboot -->
+        <receiver
+            android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryChargingProxy"
+            android:enabled="false"
+            android:exported="false" />
+        <receiver
+            android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryNotLowProxy"
+            android:enabled="false"
+            android:exported="false" />
+        <receiver
+            android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$StorageNotLowProxy"
+            android:enabled="false"
+            android:exported="false" />
+        <receiver
+            android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$NetworkStateProxy"
+            android:enabled="false"
+            android:exported="false" />
+        <receiver
+            android:name="androidx.work.impl.background.systemalarm.RescheduleReceiver"
+            android:enabled="false"
             android:exported="false">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
-                <action android:name="android.intent.action.PACKAGE_REPLACED"/>
-                <data android:scheme="package" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
         
@@ -68,5 +84,5 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        </queries>
+    </queries>
 </manifest>

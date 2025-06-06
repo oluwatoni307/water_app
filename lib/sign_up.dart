@@ -129,8 +129,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
 // Delay notification setup until after home screen is built
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await NotificationService().initialize();
-        await NotificationService().scheduleHydrationNotifications();
+        final notificationService = NotificationService();
+        await notificationService.initialize();
+        await notificationService.startHydrationReminders();
       });
     } on FirebaseAuthException catch (e) {
       print("Auth error: ${e.code} - ${e.message}");

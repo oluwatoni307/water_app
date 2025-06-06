@@ -20,11 +20,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String? _error;
 
-  /// Initialize notifications asynchronously without blocking user flow
   void _initializeNotificationsAsync() async {
     try {
-      await NotificationService().initialize();
-      await NotificationService().scheduleHydrationNotifications();
+      final notificationService = NotificationService();
+      await notificationService.initialize();
+      await notificationService.startHydrationReminders();
+      debugPrint('✅ WorkManager hydration reminders started successfully');
     } catch (e) {
       debugPrint('⚠️ Notification setup failed: $e');
     }
