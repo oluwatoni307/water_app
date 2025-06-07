@@ -155,7 +155,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () {
                               // Navigate to notification settings
-                              // Navigator.of(context).pushNamed('/notifications');
+                              Navigator.of(context).pushNamed('/notifications');
                             },
                           ),
                           const Divider(height: 1),
