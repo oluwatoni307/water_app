@@ -4,6 +4,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Global navigator key to handle payload routing
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -13,6 +14,9 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
+
+  /// Default notification times (3 times a day) - used when user hasn't set custom times
+  final List<String> _defaultTimes = ["08:00", "14:00", "20:00"];
 
   /// Initializes the notification service
   Future<void> initialize() async {
@@ -59,14 +63,157 @@ class NotificationService {
     }
   }
 
-  /// Schedules 5 different notifications with 1-minute intervals
-  Future<void> scheduleFiveNotifications() async {
+  /// Gets notification times from user settings or returns default times
+  Future<List<String>> _getNotificationTimes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+
+    if (!notificationsEnabled) {
+      if (kDebugMode) print('🔕 Notifications are disabled by user');
+      return [];
+    }
+
+    final customTimes = prefs.getStringList('notification_times');
+
+    if (customTimes != null && customTimes.isNotEmpty) {
+      if (kDebugMode) print('📅 Using custom notification times: $customTimes');
+      return customTimes;
+    } else {
+      if (kDebugMode)
+        print('📅 Using default notification times: $_defaultTimes');
+      return _defaultTimes;
+    }
+  }
+
+  /// Schedules notifications based on user settings
+  Future<void> scheduleNotifications() async {
     if (!_initialized) await initialize();
 
     // Cancel any existing notifications
     await cancelAllNotifications();
 
-    // Create 5 different notification channels
+    final notificationTimes = await _getNotificationTimes();
+
+    if (notificationTimes.isEmpty) {
+      if (kDebugMode) print('📵 No notifications to schedule');
+      return;
+    }
+
+    // Create notification channels
+    await _createNotificationChannels();
+
+    // Define notification data for different types
+    final notificationData = [
+      {
+        'channelId': 'hydration_channel',
+        'channelName': 'Hydration Reminders',
+        'title': 'Hydration Time 💧',
+        'body': 'Time to drink some water! Stay hydrated!',
+        'bigText':
+            '💧 Hydration Alert!\nYour body needs water to function properly. Take a moment to drink some refreshing water now!',
+      },
+      {
+        'channelId': 'health_channel',
+        'channelName': 'Health Tips',
+        'title': 'Health Tip 🏥',
+        'body': 'Take care of your health today!',
+        'bigText':
+            '🏥 Health Reminder!\nTaking small steps towards better health makes a big difference. Remember to stay active and eat well!',
+      },
+      {
+        'channelId': 'energy_channel',
+        'channelName': 'Energy Boosters',
+        'title': 'Energy Boost ⚡',
+        'body': 'Time to recharge your energy!',
+        'bigText':
+            '⚡ Energy Boost!\nTake a deep breath, stretch your body, and get ready to tackle your day with renewed energy!',
+      },
+      {
+        'channelId': 'wellness_channel',
+        'channelName': 'Wellness Check',
+        'title': 'Wellness Check 🌟',
+        'body': 'How are you feeling today?',
+        'bigText':
+            '🌟 Wellness Check!\nTake a moment to check in with yourself. Your mental and physical wellness matters!',
+      },
+      {
+        'channelId': 'motivation_channel',
+        'channelName': 'Daily Motivation',
+        'title': 'Stay Motivated 🚀',
+        'body': 'You\'re doing great! Keep going!',
+        'bigText':
+            '🚀 Motivation Boost!\nEvery step forward is progress. Believe in yourself and keep pushing towards your goals!',
+      },
+    ];
+
+    final now = tz.TZDateTime.now(tz.local);
+    int notificationId = 1;
+
+    // Schedule notifications for each time
+    for (int timeIndex = 0; timeIndex < notificationTimes.length; timeIndex++) {
+      final timeString = notificationTimes[timeIndex];
+      final timeParts = timeString.split(':');
+      final hour = int.parse(timeParts[0]);
+      final minute = int.parse(timeParts[1]);
+
+      // Calculate next occurrence of this time
+      var scheduledTime =
+          tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+
+      // If the time has already passed today, schedule for tomorrow
+      if (scheduledTime.isBefore(now)) {
+        scheduledTime = scheduledTime.add(const Duration(days: 1));
+      }
+
+      // Use different notification types cyclically
+      final dataIndex = timeIndex % notificationData.length;
+      final data = notificationData[dataIndex];
+
+      final androidDetails = AndroidNotificationDetails(
+        data['channelId'] as String,
+        data['channelName'] as String,
+        channelDescription: 'Scheduled reminders for your wellness',
+        importance: Importance.max,
+        priority: Priority.max,
+        styleInformation: BigTextStyleInformation(
+          data['bigText'] as String,
+        ),
+        enableVibration: true,
+        playSound: true,
+        icon: '@mipmap/ic_launcher',
+      );
+
+      final details = NotificationDetails(android: androidDetails);
+
+      // Schedule the notification to repeat daily
+      await _notifications.zonedSchedule(
+        notificationId,
+        data['title'] as String,
+        data['body'] as String,
+        scheduledTime,
+        details,
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
+        matchDateTimeComponents:
+            DateTimeComponents.time, // Repeat daily at this time
+        payload: '/',
+      );
+
+      if (kDebugMode) {
+        print(
+            '📅 Scheduled notification $notificationId: ${data['title']} at $scheduledTime');
+      }
+
+      notificationId++;
+    }
+
+    if (kDebugMode) {
+      print('🎉 All notifications scheduled successfully');
+      print('📱 Total notifications: ${notificationTimes.length}');
+    }
+  }
+
+  /// Creates notification channels for different types
+  Future<void> _createNotificationChannels() async {
     final channels = [
       const AndroidNotificationChannel(
         'hydration_channel',
@@ -107,6 +254,71 @@ class NotificationService {
     for (final channel in channels) {
       await androidPlugin?.createNotificationChannel(channel);
     }
+  }
+
+  /// Show immediate test notification
+  Future<void> showTestNotification() async {
+    if (!_initialized) await initialize();
+
+    const androidDetails = AndroidNotificationDetails(
+      'test_channel',
+      'Test Notifications',
+      channelDescription: 'Test notifications',
+      importance: Importance.max,
+      priority: Priority.max,
+      styleInformation: BigTextStyleInformation(
+        '🧪 This is a test notification to verify that notifications are working properly on your device!',
+      ),
+    );
+
+    const details = NotificationDetails(android: androidDetails);
+
+    await _notifications.show(
+      999,
+      'Test Notification 🧪',
+      'Your notifications are working perfectly!',
+      details,
+      payload: '/',
+    );
+
+    if (kDebugMode) print('🧪 Test notification sent');
+  }
+
+  /// Cancels all scheduled notifications
+  Future<void> cancelAllNotifications() async {
+    await _notifications.cancelAll();
+    if (kDebugMode) print('🔕 All notifications canceled');
+  }
+
+  /// Get the status of scheduled notifications (for debugging)
+  Future<List<PendingNotificationRequest>> getScheduledNotifications() async {
+    final pendingNotifications =
+        await _notifications.pendingNotificationRequests();
+    if (kDebugMode) {
+      print('📋 Pending notifications: ${pendingNotifications.length}');
+      for (final notification in pendingNotifications) {
+        print('  - ID: ${notification.id}, Title: ${notification.title}');
+      }
+    }
+    return pendingNotifications;
+  }
+
+  /// Updates notifications when user changes settings
+  Future<void> updateNotificationSchedule() async {
+    if (kDebugMode) print('🔄 Updating notification schedule...');
+    await scheduleNotifications();
+  }
+
+  /// Legacy method for backward compatibility - schedules 5 notifications with 1-minute intervals
+  @Deprecated('Use scheduleNotifications() instead')
+  Future<void> scheduleFiveNotifications() async {
+    if (!_initialized) await initialize();
+
+    // Cancel any existing notifications
+    await cancelAllNotifications();
+
+    // Create notification channels
+    await _createNotificationChannels();
 
     final now = tz.TZDateTime.now(tz.local);
 
@@ -168,7 +380,7 @@ class NotificationService {
       final androidDetails = AndroidNotificationDetails(
         data['channelId'] as String,
         data['channelName'] as String,
-        channelDescription: channels[i].description,
+        channelDescription: 'Legacy test notifications',
         importance: Importance.max,
         priority: Priority.max,
         styleInformation: BigTextStyleInformation(
@@ -192,18 +404,17 @@ class NotificationService {
 
       if (kDebugMode) {
         print(
-            '📅 Scheduled notification ${i + 1}: ${data['title']} at $scheduledTime');
+            '📅 Scheduled legacy notification ${i + 1}: ${data['title']} at $scheduledTime');
       }
     }
 
     if (kDebugMode) {
-      print('🎉 All 5 notifications scheduled with 1-minute intervals');
-      print('📅 First notification: ${now.add(const Duration(minutes: 1))}');
-      print('📅 Last notification: ${now.add(const Duration(minutes: 5))}');
+      print('🎉 All 5 legacy notifications scheduled with 1-minute intervals');
     }
   }
 
-  /// Show immediate test notifications for all 5 channels
+  /// Show five immediate test notifications for all channels
+  @Deprecated('Use showTestNotification() instead')
   Future<void> showFiveTestNotifications() async {
     if (!_initialized) await initialize();
 
@@ -262,24 +473,6 @@ class NotificationService {
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
-    if (kDebugMode) print('🧪 Showed 5 test notifications');
-  }
-
-  /// Cancels all scheduled notifications
-  Future<void> cancelAllNotifications() async {
-    await _notifications.cancelAll();
-    if (kDebugMode) print('🔕 All notifications canceled');
-  }
-
-  /// Get the status of scheduled notifications (for debugging)
-  Future<void> getScheduledNotifications() async {
-    final pendingNotifications =
-        await _notifications.pendingNotificationRequests();
-    if (kDebugMode) {
-      print('📋 Pending notifications: ${pendingNotifications.length}');
-      for (final notification in pendingNotifications) {
-        print('  - ID: ${notification.id}, Title: ${notification.title}');
-      }
-    }
+    if (kDebugMode) print('🧪 Showed 5 legacy test notifications');
   }
 }
