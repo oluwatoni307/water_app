@@ -61,7 +61,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
-      initialRoute: '/',
+      initialRoute: '/splash',
       theme: getAppTheme(),
       routes: {
         '/splash': (context) => SplashScreen(),
