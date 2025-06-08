@@ -53,7 +53,7 @@ class _GoalPageState extends State<GoalPage> with TickerProviderStateMixin {
             content: Text('Awesome! Your hydration goal is saved 💦'),
             duration: Duration(seconds: 1),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.blueGrey,
+            backgroundColor: Color(0xFF369FFF),
           ),
         );
 
@@ -133,37 +133,47 @@ class _GoalPageState extends State<GoalPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF369FFF),
+      backgroundColor: const Color(0xFFF4F8FB),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10.0, 20, 0, 0),
-          child: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: Container(
-              margin: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Color(0xFF369FFF)),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+        child: AppBar(
+          backgroundColor: Color(0xFF369FFF), // Secondary color
+          elevation: 0,
+          leading: Container(
+            margin: const EdgeInsets.all(8.0), // Add margin for better spacing
+            decoration: const BoxDecoration(
+              color: Color(0xFFF4F8FB),
+              shape: BoxShape.circle,
             ),
-            title: Text(
-              'Set Your Daily Hydration Goal 💧',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 16, // Optimal for AppBar
-                fontWeight:
-                    FontWeight.w600, // Semi-bold: professional yet friendly
-                // letterSpacing: 0.5,
-                // height: 1.3, // Adjust line height if wrapped
-              ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Color(0xFF369FFF)),
+              onPressed: () => Navigator.of(context).pop(),
             ),
-            centerTitle: true,
+          ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 10),
+              Text(
+                'Set Your Goal',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Start your journey to better hydration',
+                style: GoogleFonts.poppins(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -186,21 +196,22 @@ class _GoalPageState extends State<GoalPage> with TickerProviderStateMixin {
                               text: inputAmount.isEmpty
                                   ? 'Enter your goal (ml)'
                                   : inputAmount,
-                              style: TextStyle(
+                              style: GoogleFonts.poppins(
+                                // Use consistent font
                                 fontSize: inputAmount.isEmpty ? 24 : 48,
                                 fontWeight: FontWeight.bold,
                                 color: inputAmount.isEmpty
-                                    ? Colors.grey
-                                    : Colors.white,
+                                    ? Colors.grey[500]
+                                    : Color(0xFF369FFF), // Secondary color
                               ),
                             ),
                             if (_showCaret)
                               TextSpan(
                                 text: '|',
-                                style: TextStyle(
+                                style: GoogleFonts.poppins(
                                   fontSize: 44,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white
+                                  color: Color(0xFF369FFF)
                                       .withOpacity(_caretController.value),
                                 ),
                               ),
@@ -214,25 +225,43 @@ class _GoalPageState extends State<GoalPage> with TickerProviderStateMixin {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: ElevatedButton(
-              onPressed: _showTemplateBottomSheet,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF369FFF),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 24.0), // Increased padding
+            child: SizedBox(
+              width: double.infinity, // Full width button
+              height: 50, // Consistent height
+              child: ElevatedButton(
+                onPressed: _showTemplateBottomSheet,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  elevation: 2, // Add subtle shadow
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(12), // Slightly more rounded
+                    side: const BorderSide(
+                      color: Color(0xFF369FFF),
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  'Choose a Goal Template',
+                  style: GoogleFonts.poppins(
+                      // Consistent font
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF369FFF)),
                 ),
               ),
-              child: const Text('Choose a Goal Template'),
             ),
           ),
+          const SizedBox(height: 16), // Consistent spacing
           CustomNumberPad(
             onNumberTap: onNumberPressed,
             onDelete: onDeletePressed,
             finished: saveGoal,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24), // Slightly more bottom padding
         ],
       ),
     );

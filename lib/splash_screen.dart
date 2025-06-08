@@ -81,7 +81,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'Water Tracker',
+                    'Blue drop',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,

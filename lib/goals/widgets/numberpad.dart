@@ -27,12 +27,12 @@ class CustomNumberPad extends StatelessWidget {
       itemBuilder: (context, index) {
         if (index == 10) {
           return IconButton(
-            icon: Icon(Icons.backspace, color: Colors.white),
+            icon: Icon(Icons.backspace, color: Color(0xFF369FFF)),
             onPressed: onDelete,
           );
         } else if (index == 11) {
           return IconButton(
-            icon: Icon(Icons.done, color: Colors.white),
+            icon: Icon(Icons.done, color: Color(0xFF369FFF)),
             onPressed: finished,
           );
           // return SizedBox.shrink(); // Empty space
@@ -52,7 +52,7 @@ class CustomNumberPad extends StatelessWidget {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Color(0xFF369FFF),
               ),
             ),
           ),
