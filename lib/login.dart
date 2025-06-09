@@ -83,18 +83,19 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Container(
               height: 70,
+              padding: EdgeInsets.fromLTRB(15, 20, 0, 5),
               decoration: BoxDecoration(
                 color: Colors.blueGrey,
               ),
               child: Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Image.asset(
-                      'images/logo.png',
-                      width: 70,
-                      height: 70,
-                    ),
+                  Image.asset(
+                    'images/logo.png',
+                    width: 70,
+                    height: 70,
+                  ),
+                  SizedBox(
+                    width: 10,
                   ),
                   Text(
                     "Stay on track,\nStay hydrated!",

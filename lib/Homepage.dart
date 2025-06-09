@@ -26,7 +26,8 @@ class WaterTrackScreen extends StatefulWidget {
   _WaterTrackScreenState createState() => _WaterTrackScreenState();
 }
 
-class _WaterTrackScreenState extends State<WaterTrackScreen> {
+class _WaterTrackScreenState extends State<WaterTrackScreen>
+    with WidgetsBindingObserver {
   // Helper to format DateTime to "HH:MM AM/PM"
   String _formatTime(DateTime time) {
     final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
@@ -62,6 +63,7 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -82,6 +84,26 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
         );
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.resumed) {
+      _handleAppResumed();
+    }
+  }
+
+  void _handleAppResumed() async {
+    final data = Provider.of<Data>(context, listen: false);
+    await data.checkAndUpdateDayRollover();
   }
 
   @override
@@ -264,7 +286,7 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
                       children: [
                         Container(
                           width: 150,
-                          padding: const EdgeInsets.all(13.0),
+                          padding: const EdgeInsets.all(11.0),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             color: Colors.white,
@@ -278,13 +300,33 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
                             ],
                           ),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text(
+                                "Last Log",
+                                textAlign: TextAlign.start,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blueGrey,
+                                ),
+                              ),
+                              SizedBox(
+                                height: 4,
+                              ),
                               Row(
                                 children: [
                                   Text(
-                                    userData.lastLog.isNotEmpty
-                                        ? _formatTime(DateTime.now().subtract(
-                                            userData.lastLog.keys.first))
+                                    userData.Day_Log.isNotEmpty
+                                        ? _formatTime(DateTime.now().copyWith(
+                                            hour: userData
+                                                .Day_Log.keys.last.inHours,
+                                            minute: (userData.Day_Log.keys.last
+                                                    .inMinutes %
+                                                60),
+                                            second: 0,
+                                            millisecond: 0,
+                                          ))
                                         : 'N/A',
                                     style: GoogleFonts.poppins(
                                         fontSize: 12,
@@ -311,8 +353,8 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    userData.lastLog.isNotEmpty
-                                        ? "${userData.lastLog.values.first}ml"
+                                    userData.Day_Log.isNotEmpty
+                                        ? "${userData.Day_Log.values.last}ml"
                                         : "0ml",
                                     style: GoogleFonts.poppins(
                                         fontSize: 13,
@@ -348,12 +390,13 @@ class _WaterTrackScreenState extends State<WaterTrackScreen> {
                             ],
                           ),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Target:",
+                                "Target Goal:",
                                 style: GoogleFonts.poppins(
                                     fontSize: 12,
-                                    color: Colors.grey,
+                                    color: Colors.blueGrey,
                                     fontWeight: FontWeight.w500),
                               ),
                               const SizedBox(height: 5),

@@ -202,14 +202,14 @@ Widget build30DayTrendChart(List<int> allDaysData, int goal, int highest) {
                             horizontalLines: [
                               HorizontalLine(
                                 y: goal.toDouble(),
-                                color: const Color(0xFF369FFF).withOpacity(0.4),
+                                color: const Color(0xFF4CAF50).withOpacity(0.4),
                                 strokeWidth: 2,
                                 dashArray: [5, 5],
                                 label: HorizontalLineLabel(
                                   show: true,
                                   alignment: Alignment.topRight,
                                   style: TextStyle(
-                                    color: const Color(0xFF369FFF),
+                                    color: const Color(0xFF4CAF50),
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -303,7 +303,7 @@ Widget build30DayTrendChart(List<int> allDaysData, int goal, int highest) {
                         ),
                         const SizedBox(width: 20),
                         _buildLegendItem(
-                          color: const Color(0xFF369FFF).withOpacity(0.4),
+                          color: const Color(0xFF4CAF50).withOpacity(0.4),
                           label: 'Goal Line',
                           isDashed: true,
                         ),

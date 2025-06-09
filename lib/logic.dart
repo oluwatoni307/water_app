@@ -89,7 +89,7 @@ class Data extends ChangeNotifier {
 
       // Check date logic for day rollover
       if (loadedFromLocal) {
-        await _checkAndUpdateDayRollover();
+        await checkAndUpdateDayRollover();
         notifyListeners();
       }
 
@@ -102,7 +102,7 @@ class Data extends ChangeNotifier {
           // If we didn't have local data, use Firebase data
           if (!loadedFromLocal) {
             _user = firebaseUser;
-            await _checkAndUpdateDayRollover();
+            await checkAndUpdateDayRollover();
             // Save to local for next time
             await _saveToLocal();
             if (kDebugMode) print('Loaded user data from Firebase');
@@ -131,7 +131,7 @@ class Data extends ChangeNotifier {
     }
   }
 
-  Future<void> _checkAndUpdateDayRollover() async {
+  Future<void> checkAndUpdateDayRollover() async {
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
 
