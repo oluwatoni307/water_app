@@ -172,6 +172,7 @@ class _LogState extends State<Log> {
                       onNumberTap: onNumberPressed,
                       onDelete: onDeletePressed,
                       finished: logData,
+                      color: Colors.white,
                     ),
                   ),
                 ],

@@ -82,8 +82,8 @@ class _LoginScreenState extends State<LoginScreen> {
         body: Column(
           children: [
             Container(
-              height: 70,
-              padding: EdgeInsets.fromLTRB(15, 20, 0, 5),
+              height: 100,
+              padding: EdgeInsets.fromLTRB(15, 32, 0, 10),
               decoration: BoxDecoration(
                 color: Colors.blueGrey,
               ),

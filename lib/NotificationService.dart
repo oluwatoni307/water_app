@@ -53,6 +53,17 @@ class NotificationService {
             : '❌ Notification permission denied');
       }
     }
+
+    // Request exact alarm permission for Android 12+
+    final exactAlarmStatus = await Permission.scheduleExactAlarm.status;
+    if (!exactAlarmStatus.isGranted) {
+      final exactAlarmResult = await Permission.scheduleExactAlarm.request();
+      if (kDebugMode) {
+        print(exactAlarmResult.isGranted
+            ? '✅ Exact alarm permission granted'
+            : '❌ Exact alarm permission denied');
+      }
+    }
   }
 
   /// Handles notification tap
@@ -85,7 +96,7 @@ class NotificationService {
     }
   }
 
-  /// Schedules notifications based on user settings
+  /// Schedules notifications based on user settings (for 30 days)
   Future<void> scheduleNotifications() async {
     if (!_initialized) await initialize();
 
@@ -102,7 +113,12 @@ class NotificationService {
     // Create notification channels
     await _createNotificationChannels();
 
-    // Define notification data for different types
+    // Store the start date for 30-day limit
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        'notification_start_date', DateTime.now().toIso8601String());
+
+    // Define notification data for different types - all water tracking focused
     final notificationData = [
       {
         'channelId': 'hydration_channel',
@@ -113,102 +129,116 @@ class NotificationService {
             '💧 Hydration Alert!\nYour body needs water to function properly. Take a moment to drink some refreshing water now!',
       },
       {
-        'channelId': 'health_channel',
-        'channelName': 'Health Tips',
-        'title': 'Health Tip 🏥',
-        'body': 'Take care of your health today!',
+        'channelId': 'water_goal_channel',
+        'channelName': 'Water Goal Reminders',
+        'title': 'Water Goal Check 🎯',
+        'body': 'How\'s your water intake today?',
         'bigText':
-            '🏥 Health Reminder!\nTaking small steps towards better health makes a big difference. Remember to stay active and eat well!',
+            '🎯 Water Goal Reminder!\nCheck your progress and see how close you are to reaching your daily water intake goal. Every sip counts!',
       },
       {
-        'channelId': 'energy_channel',
-        'channelName': 'Energy Boosters',
-        'title': 'Energy Boost ⚡',
-        'body': 'Time to recharge your energy!',
+        'channelId': 'dehydration_channel',
+        'channelName': 'Dehydration Prevention',
+        'title': 'Don\'t Forget Water 🚰',
+        'body': 'It\'s been a while since your last drink!',
         'bigText':
-            '⚡ Energy Boost!\nTake a deep breath, stretch your body, and get ready to tackle your day with renewed energy!',
+            '🚰 Dehydration Prevention!\nRegular water intake prevents headaches, fatigue, and keeps your body functioning optimally. Drink up!',
       },
       {
-        'channelId': 'wellness_channel',
-        'channelName': 'Wellness Check',
-        'title': 'Wellness Check 🌟',
-        'body': 'How are you feeling today?',
+        'channelId': 'health_hydration_channel',
+        'channelName': 'Hydration Health Tips',
+        'title': 'Hydration Health 🌊',
+        'body': 'Water is essential for your wellbeing!',
         'bigText':
-            '🌟 Wellness Check!\nTake a moment to check in with yourself. Your mental and physical wellness matters!',
+            '🌊 Hydration Health Tip!\nProper hydration improves skin health, boosts energy, aids digestion, and enhances mental clarity. Keep drinking!',
       },
       {
-        'channelId': 'motivation_channel',
-        'channelName': 'Daily Motivation',
-        'title': 'Stay Motivated 🚀',
-        'body': 'You\'re doing great! Keep going!',
+        'channelId': 'water_motivation_channel',
+        'channelName': 'Water Motivation',
+        'title': 'Stay Hydrated Champion 🏆',
+        'body': 'You\'re doing great with your hydration!',
         'bigText':
-            '🚀 Motivation Boost!\nEvery step forward is progress. Believe in yourself and keep pushing towards your goals!',
+            '🏆 Hydration Champion!\nEvery glass of water brings you closer to optimal health. Keep up the excellent hydration habits!',
       },
     ];
 
     final now = tz.TZDateTime.now(tz.local);
+    final endDate = now.add(const Duration(days: 30)); // 30-day limit
     int notificationId = 1;
 
-    // Schedule notifications for each time
-    for (int timeIndex = 0; timeIndex < notificationTimes.length; timeIndex++) {
-      final timeString = notificationTimes[timeIndex];
-      final timeParts = timeString.split(':');
-      final hour = int.parse(timeParts[0]);
-      final minute = int.parse(timeParts[1]);
+    // Schedule notifications for each time for the next 30 days
+    for (int day = 0; day < 30; day++) {
+      final currentDay = now.add(Duration(days: day));
 
-      // Calculate next occurrence of this time
-      var scheduledTime =
-          tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+      for (int timeIndex = 0;
+          timeIndex < notificationTimes.length;
+          timeIndex++) {
+        final timeString = notificationTimes[timeIndex];
+        final timeParts = timeString.split(':');
+        final hour = int.parse(timeParts[0]);
+        final minute = int.parse(timeParts[1]);
 
-      // If the time has already passed today, schedule for tomorrow
-      if (scheduledTime.isBefore(now)) {
-        scheduledTime = scheduledTime.add(const Duration(days: 1));
+        // Calculate scheduled time for this specific day
+        var scheduledTime = tz.TZDateTime(tz.local, currentDay.year,
+            currentDay.month, currentDay.day, hour, minute);
+
+        // Skip if this time has already passed (only for today)
+        if (day == 0 && scheduledTime.isBefore(now)) {
+          continue;
+        }
+
+        // Ensure minimum delay of 1 minute from now for today's notifications
+        if (day == 0) {
+          final minimumScheduleTime = now.add(const Duration(minutes: 1));
+          if (scheduledTime.isBefore(minimumScheduleTime)) {
+            continue;
+          }
+        }
+
+        // Use different notification types cyclically
+        final dataIndex = (timeIndex + day) % notificationData.length;
+        final data = notificationData[dataIndex];
+
+        final androidDetails = AndroidNotificationDetails(
+          data['channelId'] as String,
+          data['channelName'] as String,
+          channelDescription: 'Water tracking reminders for your health',
+          importance: Importance.max,
+          priority: Priority.max,
+          styleInformation: BigTextStyleInformation(
+            data['bigText'] as String,
+          ),
+          enableVibration: true,
+          playSound: true,
+          icon: '@mipmap/ic_launcher',
+        );
+
+        final details = NotificationDetails(android: androidDetails);
+
+        // Schedule individual notification (not repeating)
+        await _notifications.zonedSchedule(
+          notificationId,
+          data['title'] as String,
+          data['body'] as String,
+          scheduledTime,
+          details,
+          androidScheduleMode: AndroidScheduleMode.alarmClock,
+          payload: '/',
+        );
+
+        if (kDebugMode) {
+          print(
+              '📅 Scheduled notification $notificationId: ${data['title']} at $scheduledTime (Day ${day + 1})');
+        }
+
+        notificationId++;
       }
-
-      // Use different notification types cyclically
-      final dataIndex = timeIndex % notificationData.length;
-      final data = notificationData[dataIndex];
-
-      final androidDetails = AndroidNotificationDetails(
-        data['channelId'] as String,
-        data['channelName'] as String,
-        channelDescription: 'Scheduled reminders for your wellness',
-        importance: Importance.max,
-        priority: Priority.max,
-        styleInformation: BigTextStyleInformation(
-          data['bigText'] as String,
-        ),
-        enableVibration: true,
-        playSound: true,
-        icon: '@mipmap/ic_launcher',
-      );
-
-      final details = NotificationDetails(android: androidDetails);
-
-      // Schedule the notification to repeat daily
-      await _notifications.zonedSchedule(
-        notificationId,
-        data['title'] as String,
-        data['body'] as String,
-        scheduledTime,
-        details,
-        androidScheduleMode: AndroidScheduleMode.alarmClock,
-        matchDateTimeComponents:
-            DateTimeComponents.time, // Repeat daily at this time
-        payload: '/',
-      );
-
-      if (kDebugMode) {
-        print(
-            '📅 Scheduled notification $notificationId: ${data['title']} at $scheduledTime');
-      }
-
-      notificationId++;
     }
 
     if (kDebugMode) {
-      print('🎉 All notifications scheduled successfully');
-      print('📱 Total notifications: ${notificationTimes.length}');
+      print('🎉 All notifications scheduled successfully for 30 days');
+      print('📱 Total notifications: ${(notificationTimes.length * 30)}');
+      print('📅 Schedule period: ${now.toLocal()} to ${endDate.toLocal()}');
     }
   }
 
@@ -218,31 +248,31 @@ class NotificationService {
       const AndroidNotificationChannel(
         'hydration_channel',
         'Hydration Reminders',
-        description: 'Stay hydrated with water reminders',
+        description: 'Regular water drinking reminders',
         importance: Importance.max,
       ),
       const AndroidNotificationChannel(
-        'health_channel',
-        'Health Tips',
-        description: 'Daily health and wellness tips',
+        'water_goal_channel',
+        'Water Goal Reminders',
+        description: 'Daily water intake goal tracking',
         importance: Importance.max,
       ),
       const AndroidNotificationChannel(
-        'energy_channel',
-        'Energy Boosters',
-        description: 'Energy and motivation reminders',
+        'dehydration_channel',
+        'Dehydration Prevention',
+        description: 'Alerts to prevent dehydration',
         importance: Importance.max,
       ),
       const AndroidNotificationChannel(
-        'wellness_channel',
-        'Wellness Check',
-        description: 'Overall wellness reminders',
+        'health_hydration_channel',
+        'Hydration Health Tips',
+        description: 'Health benefits of proper hydration',
         importance: Importance.max,
       ),
       const AndroidNotificationChannel(
-        'motivation_channel',
-        'Daily Motivation',
-        description: 'Motivational quotes and reminders',
+        'water_motivation_channel',
+        'Water Motivation',
+        description: 'Motivational hydration reminders',
         importance: Importance.max,
       ),
     ];
@@ -254,34 +284,6 @@ class NotificationService {
     for (final channel in channels) {
       await androidPlugin?.createNotificationChannel(channel);
     }
-  }
-
-  /// Show immediate test notification
-  Future<void> showTestNotification() async {
-    if (!_initialized) await initialize();
-
-    const androidDetails = AndroidNotificationDetails(
-      'test_channel',
-      'Test Notifications',
-      channelDescription: 'Test notifications',
-      importance: Importance.max,
-      priority: Priority.max,
-      styleInformation: BigTextStyleInformation(
-        '🧪 This is a test notification to verify that notifications are working properly on your device!',
-      ),
-    );
-
-    const details = NotificationDetails(android: androidDetails);
-
-    await _notifications.show(
-      999,
-      'Test Notification 🧪',
-      'Your notifications are working perfectly!',
-      details,
-      payload: '/',
-    );
-
-    if (kDebugMode) print('🧪 Test notification sent');
   }
 
   /// Cancels all scheduled notifications
@@ -309,170 +311,42 @@ class NotificationService {
     await scheduleNotifications();
   }
 
-  /// Legacy method for backward compatibility - schedules 5 notifications with 1-minute intervals
-  @Deprecated('Use scheduleNotifications() instead')
-  Future<void> scheduleFiveNotifications() async {
-    if (!_initialized) await initialize();
-
-    // Cancel any existing notifications
-    await cancelAllNotifications();
-
-    // Create notification channels
-    await _createNotificationChannels();
-
-    final now = tz.TZDateTime.now(tz.local);
-
-    // Define notification data for each of the 5 notifications
-    final notificationData = [
-      {
-        'id': 1,
-        'channelId': 'hydration_channel',
-        'channelName': 'Hydration Reminders',
-        'title': 'Hydration Time 💧',
-        'body': 'Time to drink some water! Stay hydrated!',
-        'bigText':
-            '💧 Hydration Alert!\nYour body needs water to function properly. Take a moment to drink some refreshing water now!',
-      },
-      {
-        'id': 2,
-        'channelId': 'health_channel',
-        'channelName': 'Health Tips',
-        'title': 'Health Tip 🏥',
-        'body': 'Take care of your health today!',
-        'bigText':
-            '🏥 Health Reminder!\nTaking small steps towards better health makes a big difference. Remember to stay active and eat well!',
-      },
-      {
-        'id': 3,
-        'channelId': 'energy_channel',
-        'channelName': 'Energy Boosters',
-        'title': 'Energy Boost ⚡',
-        'body': 'Time to recharge your energy!',
-        'bigText':
-            '⚡ Energy Boost!\nTake a deep breath, stretch your body, and get ready to tackle your day with renewed energy!',
-      },
-      {
-        'id': 4,
-        'channelId': 'wellness_channel',
-        'channelName': 'Wellness Check',
-        'title': 'Wellness Check 🌟',
-        'body': 'How are you feeling today?',
-        'bigText':
-            '🌟 Wellness Check!\nTake a moment to check in with yourself. Your mental and physical wellness matters!',
-      },
-      {
-        'id': 5,
-        'channelId': 'motivation_channel',
-        'channelName': 'Daily Motivation',
-        'title': 'Stay Motivated 🚀',
-        'body': 'You\'re doing great! Keep going!',
-        'bigText':
-            '🚀 Motivation Boost!\nEvery step forward is progress. Believe in yourself and keep pushing towards your goals!',
-      },
-    ];
-
-    // Schedule each notification with 1-minute intervals using alarm clock mode
-    for (int i = 0; i < notificationData.length; i++) {
-      final data = notificationData[i];
-      final scheduledTime =
-          now.add(Duration(minutes: i + 1)); // 1, 2, 3, 4, 5 minutes
-
-      final androidDetails = AndroidNotificationDetails(
-        data['channelId'] as String,
-        data['channelName'] as String,
-        channelDescription: 'Legacy test notifications',
-        importance: Importance.max,
-        priority: Priority.max,
-        styleInformation: BigTextStyleInformation(
-          data['bigText'] as String,
-        ),
-        enableVibration: true,
-        playSound: true,
-      );
-
-      final details = NotificationDetails(android: androidDetails);
-
-      await _notifications.zonedSchedule(
-        data['id'] as int,
-        data['title'] as String,
-        data['body'] as String,
-        scheduledTime,
-        details,
-        androidScheduleMode: AndroidScheduleMode.alarmClock,
-        payload: '/',
-      );
-
-      if (kDebugMode) {
-        print(
-            '📅 Scheduled legacy notification ${i + 1}: ${data['title']} at $scheduledTime');
-      }
-    }
-
-    if (kDebugMode) {
-      print('🎉 All 5 legacy notifications scheduled with 1-minute intervals');
-    }
+  /// Check if exact alarm permission is granted (Android 12+)
+  Future<bool> canScheduleExactAlarms() async {
+    final status = await Permission.scheduleExactAlarm.status;
+    return status.isGranted;
   }
 
-  /// Show five immediate test notifications for all channels
-  @Deprecated('Use showTestNotification() instead')
-  Future<void> showFiveTestNotifications() async {
-    if (!_initialized) await initialize();
+  /// Request user to disable battery optimization for reliable notifications
+  Future<void> requestBatteryOptimizationDisabled() async {
+    // This would typically open device settings to disable battery optimization
+    // Implementation depends on the device manufacturer
+    if (kDebugMode)
+      print(
+          '🔋 Consider disabling battery optimization for reliable notifications');
+  }
 
-    final testNotifications = [
-      {
-        'id': 101,
-        'channelId': 'hydration_channel',
-        'title': 'Test Hydration 💧',
-        'body': 'Hydration test notification',
-      },
-      {
-        'id': 102,
-        'channelId': 'health_channel',
-        'title': 'Test Health 🏥',
-        'body': 'Health test notification',
-      },
-      {
-        'id': 103,
-        'channelId': 'energy_channel',
-        'title': 'Test Energy ⚡',
-        'body': 'Energy test notification',
-      },
-      {
-        'id': 104,
-        'channelId': 'wellness_channel',
-        'title': 'Test Wellness 🌟',
-        'body': 'Wellness test notification',
-      },
-      {
-        'id': 105,
-        'channelId': 'motivation_channel',
-        'title': 'Test Motivation 🚀',
-        'body': 'Motivation test notification',
-      },
-    ];
+  /// Check if the 30-day notification period has expired
+  Future<bool> hasNotificationPeriodExpired() async {
+    final prefs = await SharedPreferences.getInstance();
+    final startDateString = prefs.getString('notification_start_date');
 
-    for (final notification in testNotifications) {
-      const androidDetails = AndroidNotificationDetails(
-        'test_channel',
-        'Test Notifications',
-        channelDescription: 'Test notifications',
-        importance: Importance.max,
-        priority: Priority.max,
-      );
+    if (startDateString == null) return false;
 
-      const details = NotificationDetails(android: androidDetails);
+    final startDate = DateTime.parse(startDateString);
+    final now = DateTime.now();
+    final daysPassed = now.difference(startDate).inDays;
 
-      await _notifications.show(
-        notification['id'] as int,
-        notification['title'] as String,
-        notification['body'] as String,
-        details,
-      );
+    if (kDebugMode)
+      print('📅 Notification period: $daysPassed/30 days elapsed');
 
-      // Small delay between each test notification
-      await Future.delayed(const Duration(milliseconds: 500));
-    }
+    return daysPassed >= 30;
+  }
 
-    if (kDebugMode) print('🧪 Showed 5 legacy test notifications');
+  /// Extend notification period for another 30 days
+  Future<void> extendNotificationPeriod() async {
+    if (kDebugMode)
+      print('🔄 Extending notification period for another 30 days');
+    await scheduleNotifications();
   }
 }

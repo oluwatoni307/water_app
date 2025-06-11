@@ -19,28 +19,40 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    // Add a delay before navigating to the next screen
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) {
-        // Check if widget is still mounted
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const OnBoardingPageView()),
-          );
-        } else {
-          // Run initialize() safely after the first frame
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final data = Provider.of<Data>(context, listen: false);
-            data.initialize();
-          });
-          Navigator.pushReplacementNamed(
-            context,
-            '/', // The named route you want to push to
-          );
+    // Start the authentication check and initialization immediately
+    _initializeApp();
+  }
+
+  void _initializeApp() async {
+    // Check authentication status
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      // If user is authenticated, initialize data during the delay
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final data = Provider.of<Data>(context, listen: false);
+          data.initialize();
         }
+      });
+    }
+
+    // Add delay after starting the checks/initialization
+    await Future.delayed(const Duration(seconds: 3));
+
+    // Navigate based on authentication status
+    if (mounted) {
+      if (user == null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const OnBoardingPageView()),
+        );
+      } else {
+        Navigator.pushReplacementNamed(
+          context,
+          '/', // The named route you want to push to
+        );
       }
-    });
+    }
   }
 
   @override
