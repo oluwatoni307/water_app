@@ -15,7 +15,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
-        android:label="Blue Drop"
+        android:label="BlueDrop"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         

@@ -19,7 +19,7 @@ class _InfoDialogState extends State<InfoDialog> {
   // Updated list with title and message
   final List<Map<String, String>> _onboardingSteps = [
     {
-      'title': 'Welcome to WaterTrack',
+      'title': 'Welcome to BlueDrop',
       'message':
           'This app helps you stay hydrated by tracking your daily water intake.',
     },
