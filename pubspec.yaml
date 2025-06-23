@@ -118,5 +118,5 @@ flutter_launcher_icons:
   ios: true
   web:
     generate: true
-    image_path: "images/water_logo.png"
-  image_path: "images/water_logo.png"
+    image_path: "images/new_logo.png"
+  image_path: "images/new_logo.png"

@@ -174,7 +174,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               height: 100,
               padding: EdgeInsets.fromLTRB(15, 32, 0, 10),
               decoration: BoxDecoration(
-                color: Colors.blueGrey,
+                color: Color(0xFF369FFF),
               ),
               child: Row(
                 children: [
